@@ -43,8 +43,6 @@ If you switch back to the main stream version, you'll be missing the following a
 27. Proper click/scroll/right-click for trackpad on generic Android tablet when using local cursor
 28. Virtual Display integration with (Apollo)[https://github.com/ClassicOldSong/Apollo]
 
-Also checkout https://github.com/ClassicOldSong/Widecar if you want a seamless experience like Apple Sidecar for your Windows PC with Sunshine and Moonlight.
-
 A more seamless experience with virtual display will be Artemis paired with [Apollo](https://github.com/ClassicOldSong/Apollo).
 
 ## Downloads
