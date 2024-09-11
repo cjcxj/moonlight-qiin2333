@@ -30,7 +30,8 @@ jobs:
       with:
        ndk-version: r27
        local-cache: true
-       link-to-sdk: true
+    run: ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=/home/runner/work/moonlight-next/app/src/main/jni/Android.mk NDK_APPLICATION_MK=/home/runner/work/moonlight-next/app/src/main/jni/Application.mk
+
 
     - name: Set Cache
       uses: actions/cache@v3
