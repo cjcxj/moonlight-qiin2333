@@ -31,6 +31,8 @@ jobs:
         sdk-version: '34'
         ndk-version: '27.0.12077973'
 
+    - run: ndk-build NDK_PROJECT_PATH=.
+
     - name: Cache
       uses: actions/cache@v3
       with:
