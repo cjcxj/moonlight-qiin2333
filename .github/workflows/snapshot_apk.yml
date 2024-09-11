@@ -26,11 +26,11 @@ jobs:
       run: chmod +x ./gradlew
 
     - name: Set up Android SDK
-      uses: android-actions/setup-android@v2
+      uses: android-actions/setup-android@v3
       with:
         sdk-version: '34'
         ndk-version: '27.0.12077973'
-        
+
     - name: Cache
       uses: actions/cache@v3
       with:
