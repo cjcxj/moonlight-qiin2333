@@ -375,7 +375,7 @@
             android:dependency="checkbox_enable_perf_overlay"
             android:title="@string/title_checkbox_enable_perf_overlay_lite"
             android:summary="@string/summary_checkbox_enable_perf_overlay_lite"
-            android:defaultValue="false" />
+            android:defaultValue="true" />
 
         <CheckBoxPreference
             android:key="checkbox_enable_perf_overlay_lite_dialog"
