@@ -3185,6 +3185,14 @@ public class Game extends FragmentActivity implements SurfaceHolder.Callback,
         isPanZoomMode = false;
     }
 
+    public boolean isLitePerfMode() {
+        return performanceOverlayView.isLiteMode();
+    }
+
+    public void isLitePerfMode(boolean boo) {
+        performanceOverlayView.setLiteMode(boo);
+    }
+
     public void showHUD(){
         prefConfig.enablePerfOverlay=!prefConfig.enablePerfOverlay;
         if(prefConfig.enablePerfOverlay){
