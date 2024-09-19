@@ -58,7 +58,7 @@ private fun GameMenuPanel(
 ) {
     val dialogController = LocalComposeDialogController.current
     val padding = 4.dp
-    Column {
+    Column(modifier = Modifier.padding(horizontal = 4.dp)) {
         Text(
             modifier = Modifier.padding(vertical = 16.dp, horizontal = padding),
             text = title,
