@@ -31,7 +31,7 @@ jobs:
         sdk-version: '34'
         ndk-version: '27.0.12077973'
 
-    - run: ndk-build NDK_PROJECT_PATH=.
+    - run: /usr/local/lib/android/sdk/ndk/27.0.12077973/ndk-build NDK_PROJECT_PATH=/home/runner/work/moonlight-next/moonlight-next/
 
     - name: Cache
       uses: actions/cache@v3
