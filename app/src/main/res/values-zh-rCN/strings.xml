@@ -494,4 +494,11 @@
     <string name="vdisplay_not_supported"><![CDATA[此服务端不支持虚拟显示器。请使用 <a href=\"https://github.com/ClassicOldSong/Apollo\">Apollo</a> 作为服务端串流软件。]]></string>
     <string name="proceed">继续</string>
     <string name="cancel">取消</string>
+
+    <!-- next -->
+    <string name="app_settings">设置</string>
+    <string name="app_play">游玩</string>
+    <string name="app_about">关于</string>
+    <string name="app_pref_current_config">当前配置</string>
+    <string name="app_pref_default_config">默认</string>
 </resources>

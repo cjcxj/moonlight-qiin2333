@@ -195,5 +195,5 @@ dependencies {
     // Optional - Integration with LiveData
     implementation 'androidx.compose.runtime:runtime-livedata'
 
-    //test ci pkg
+    implementation "androidx.navigation:navigation-compose:2.8.1"
 }
