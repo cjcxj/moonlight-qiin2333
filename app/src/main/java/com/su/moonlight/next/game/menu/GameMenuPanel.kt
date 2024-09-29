@@ -106,6 +106,9 @@ class GameMenuPanel(
                 getString(R.string.game_menu_send_keys_f11)
             ) { sendKeys(shortArrayOf(KeyboardTranslator.VK_F11.toShort())) })
 
+            options.add(SpecialButtonMenuOption(getString(R.string.game_menu_send_keys_f12)
+            ) { sendKeys(shortArrayOf(KeyboardTranslator.VK_F12.toShort())) })
+
             options.add(SpecialButtonMenuOption(
                 getString(R.string.game_menu_send_keys_alt_f4)
             ) {

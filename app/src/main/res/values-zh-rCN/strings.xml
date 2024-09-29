@@ -421,6 +421,7 @@
     <string name="title_checkbox_back_as_meta">使用返回键作为 Meta</string>
     <string name="game_menu_send_keys_esc">发送 ESC</string>
     <string name="game_menu_send_keys_f11">发送 F11</string>
+    <string name="game_menu_send_keys_f12">发送 F12</string>
     <string name="game_menu_send_keys_alt_f4">发送 Alt + F4</string>
     <string name="game_menu_send_keys_alt_enter">发送 Alt + Enter</string>
     <string name="game_menu_send_keys_ctrl_alt_shift_f12">发送 Ctrl+Alt+Shift+F12 (切换显示器)</string>

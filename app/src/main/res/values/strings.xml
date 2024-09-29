@@ -343,6 +343,7 @@
     <string name="game_menu_send_keys">Send special keys</string>
     <string name="game_menu_send_keys_esc">Send ESC</string>
     <string name="game_menu_send_keys_f11">Send F11</string>
+    <string name="game_menu_send_keys_f12">Send F12</string>
     <string name="game_menu_send_keys_alt_f4">Send Alt + F4</string>
     <string name="game_menu_send_keys_ctrl_v">Send Ctrl + V</string>
     <string name="game_menu_send_keys_win">Send Win (Meta)</string>
