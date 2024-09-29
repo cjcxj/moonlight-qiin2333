@@ -16,6 +16,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -53,13 +54,13 @@ object ComputerDetailRepository {
             }
 
             binder.startPolling {
-                kLog.d("update: $it")
+                kLog.d("update: (${it.hashCode()})$it")
                 trySend(it)
             }
 
             awaitClose {
                 serviceConnection?.let { activity.unbindService(it) }
             }
-        }
+        }.distinctUntilChanged()
     }
 }
