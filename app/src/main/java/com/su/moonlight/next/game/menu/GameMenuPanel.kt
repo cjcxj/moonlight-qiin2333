@@ -1,22 +1,20 @@
 package com.su.moonlight.next.game.menu
 
 import android.app.Activity
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.text.TextUtils
 import android.widget.Toast
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.Mouse
-import androidx.compose.material.icons.rounded.AddChart
+import androidx.compose.material.icons.filled.Screenshot
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.Games
 import androidx.compose.material.icons.rounded.KeyboardAlt
 import androidx.compose.material.icons.rounded.KeyboardCommandKey
 import androidx.compose.material.icons.rounded.Mouse
-import androidx.compose.material.icons.rounded.PanTool
-import androidx.compose.material.icons.rounded.PanToolAlt
 import androidx.compose.material.icons.rounded.Task
 import androidx.compose.material.icons.rounded.TouchApp
 import com.limelight.Game
@@ -430,6 +428,15 @@ class GameMenuPanel(
             options.add(MenuOption(
                 getString(R.string.game_menu_select_mouse_mode), true, Icons.Rounded.Mouse
             ) { game.selectMouseModeModal() })
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            options.add(
+                MenuOption(
+                    getString(R.string.screenshot),
+                    false,
+                    Icons.Default.Screenshot
+                ) { game.preScreenshot() })
         }
 
         options.add(CancelMenuOption())
