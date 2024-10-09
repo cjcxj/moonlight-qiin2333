@@ -528,4 +528,10 @@
     <string name="app_about">About</string>
     <string name="app_pref_current_config">Current Config</string>
     <string name="app_pref_default_config">Default</string>
+    <string name="screenshot">Screenshot</string>
+    <string name="copy_error">Copy error</string>
+    <string name="screenshot_saved">Screenshot saved</string>
+    <string name="insert_image_error">Insert image error</string>
+    <string name="permission_denied">Permission denied</string>
+
 </resources>

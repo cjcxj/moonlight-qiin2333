@@ -1,6 +1,63 @@
 package com.limelight;
 
 
+import android.Manifest;
+import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
+import android.app.AlertDialog;
+import android.app.PictureInPictureParams;
+import android.app.Service;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.Outline;
+import android.graphics.Point;
+import android.graphics.Rect;
+import android.hardware.display.DisplayManager;
+import android.hardware.input.InputManager;
+import android.media.AudioManager;
+import android.net.ConnectivityManager;
+import android.net.wifi.WifiManager;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.preference.PreferenceManager;
+import android.provider.MediaStore;
+import android.util.Rational;
+import android.view.Display;
+import android.view.Gravity;
+import android.view.InputDevice;
+import android.view.KeyCharacterMap;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.PixelCopy;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.View;
+import android.view.View.OnGenericMotionListener;
+import android.view.View.OnSystemUiVisibilityChangeListener;
+import android.view.View.OnTouchListener;
+import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
+import android.view.ViewParent;
+import android.view.Window;
+import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.FrameLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+import androidx.fragment.app.FragmentActivity;
+
 import com.limelight.binding.PlatformBinding;
 import com.limelight.binding.audio.AndroidAudioRenderer;
 import com.limelight.binding.input.ControllerHandler;
@@ -8,10 +65,10 @@ import com.limelight.binding.input.GameInputDevice;
 import com.limelight.binding.input.KeyboardTranslator;
 import com.limelight.binding.input.capture.InputCaptureManager;
 import com.limelight.binding.input.capture.InputCaptureProvider;
-import com.limelight.binding.input.touch.AbsoluteTouchContext;
-import com.limelight.binding.input.touch.RelativeTouchContext;
 import com.limelight.binding.input.driver.UsbDriverService;
 import com.limelight.binding.input.evdev.EvdevListener;
+import com.limelight.binding.input.touch.AbsoluteTouchContext;
+import com.limelight.binding.input.touch.RelativeTouchContext;
 import com.limelight.binding.input.touch.TouchContext;
 import com.limelight.binding.input.touch.TrackpadContext;
 import com.limelight.binding.input.virtual_controller.VirtualController;
@@ -40,58 +97,10 @@ import com.limelight.utils.ServerHelper;
 import com.limelight.utils.ShortcutHelper;
 import com.limelight.utils.SpinnerDialog;
 import com.limelight.utils.UiHelper;
-import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.PictureInPictureParams;
-import android.app.Service;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.content.SharedPreferences;
-import android.content.pm.ActivityInfo;
-import android.content.pm.PackageManager;
-import android.content.res.Configuration;
-import android.graphics.Outline;
-import android.graphics.Point;
-import android.graphics.Rect;
-import android.hardware.display.DisplayManager;
-import android.hardware.input.InputManager;
-import android.media.AudioManager;
-import android.net.ConnectivityManager;
-import android.net.wifi.WifiManager;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
-import android.preference.PreferenceManager;
-import android.util.Rational;
-import android.view.Display;
-import android.view.Gravity;
-import android.view.InputDevice;
-import android.view.KeyCharacterMap;
-import android.view.KeyEvent;
-import android.view.MotionEvent;
-import android.view.Surface;
-import android.view.SurfaceHolder;
-import android.view.View;
-import android.view.View.OnGenericMotionListener;
-import android.view.View.OnSystemUiVisibilityChangeListener;
-import android.view.View.OnTouchListener;
-import android.view.ViewGroup;
-import android.view.ViewOutlineProvider;
-import android.view.ViewParent;
-import android.view.Window;
-import android.view.WindowManager;
-import android.widget.FrameLayout;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import androidx.activity.ComponentActivity;
-import androidx.fragment.app.FragmentActivity;
+import com.su.moonlight.next.R;
+import com.su.moonlight.next.game.menu.GameMenuPanel;
+import com.su.moonlight.next.game.pref.PerformanceInfo;
+import com.su.moonlight.next.game.pref.PerformanceOverlayView;
 
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -103,10 +112,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import com.su.moonlight.next.R;
-import com.su.moonlight.next.game.menu.GameMenuPanel;
-import com.su.moonlight.next.game.pref.PerformanceInfo;
-import com.su.moonlight.next.game.pref.PerformanceOverlayView;
 
 
 public class Game extends FragmentActivity implements SurfaceHolder.Callback,
@@ -133,6 +138,8 @@ public class Game extends FragmentActivity implements SurfaceHolder.Callback,
     private static final int STYLUS_UP_DEAD_ZONE_RADIUS = 50;
 
     private static final int THREE_FINGER_TAP_THRESHOLD = 300;
+
+    private final int REQUEST_CODE = 0;
 
     private ControllerHandler controllerHandler;
     private KeyboardTranslator keyboardTranslator;
@@ -3286,5 +3293,50 @@ public class Game extends FragmentActivity implements SurfaceHolder.Callback,
             }
         });
         streamView.setClipToOutline(true);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CODE) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    screenshot();
+                }
+            } else {
+                Toast.makeText(Game.this, getString(R.string.permission_denied), Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    public void preScreenshot() {
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CODE);
+                return;
+            }
+        }
+        screenshot();
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    private void screenshot() {
+        Bitmap dest = Bitmap.createBitmap(streamView.getWidth(), streamView.getHeight(), Bitmap.Config.ARGB_8888);
+        PixelCopy.request(streamView, dest, new PixelCopy.OnPixelCopyFinishedListener() {
+            @Override
+            public void onPixelCopyFinished(int copyResult) {
+                if (copyResult == PixelCopy.SUCCESS) {
+                    String url = MediaStore.Images.Media.insertImage(getContentResolver(), dest, String.valueOf(System.currentTimeMillis()), "screenshot");
+                    if (url == null) {
+                        Toast.makeText(Game.this, getString(R.string.insert_image_error), Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(Game.this, getString(R.string.screenshot_saved), Toast.LENGTH_LONG).show();
+                    }
+                } else {
+                    Toast.makeText(Game.this, getString(R.string.copy_error), Toast.LENGTH_LONG).show();
+                }
+            }
+        }, streamView.getHandler());
     }
 }
