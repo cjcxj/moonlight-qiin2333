@@ -502,4 +502,10 @@
     <string name="app_about">关于</string>
     <string name="app_pref_current_config">当前配置</string>
     <string name="app_pref_default_config">默认</string>
+    <string name="screenshot">截屏</string>
+    <string name="copy_error">复制失败</string>
+    <string name="c_saved">截图已保存</string>
+    <string name="insert_image_error">插入图片错误</string>
+    <string name="permission_denied">权限异常</string>
+
 </resources>
