@@ -1,5 +1,6 @@
 package com.su.moonlight.next
 
+import android.os.Bundle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.navigation.NavHostController
@@ -24,6 +25,10 @@ val LocalNavDestination = compositionLocalOf<NavDestination> {
         }
 
     }
+}
+
+val LocalNavDestinationArgs = compositionLocalOf<Bundle?> {
+    null
 }
 
 val LocalNavHostController = compositionLocalOf<NavHostController?> { null }

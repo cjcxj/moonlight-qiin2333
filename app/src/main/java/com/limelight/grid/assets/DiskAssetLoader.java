@@ -20,8 +20,8 @@ public class DiskAssetLoader {
     private static final long MAX_ASSET_SIZE = 5 * 1024 * 1024;
 
     // Standard box art is 300x400
-    private static final int STANDARD_ASSET_WIDTH = 300;
-    private static final int STANDARD_ASSET_HEIGHT = 400;
+    public static final int STANDARD_ASSET_WIDTH = 300;
+    public static final int STANDARD_ASSET_HEIGHT = 400;
 
     private final boolean isLowRamDevice;
     private final File cacheDir;

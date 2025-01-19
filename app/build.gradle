@@ -64,6 +64,10 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
+    kotlinOptions {
+        jvmTarget = 17
+    }
+
     lint {
         disable 'MissingTranslation'
         lintConfig file('lint.xml')
@@ -196,4 +200,7 @@ dependencies {
     implementation 'androidx.compose.runtime:runtime-livedata'
 
     implementation "androidx.navigation:navigation-compose:2.8.1"
+
+    implementation("io.coil-kt.coil3:coil-compose:3.0.4")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
 }

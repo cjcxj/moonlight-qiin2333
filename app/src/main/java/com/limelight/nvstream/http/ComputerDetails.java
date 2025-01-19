@@ -81,6 +81,8 @@ public class ComputerDetails {
     public boolean vDisplaySupported = false;
     public boolean vDisplayDriverReady = false;
 
+    public String localUniqueId;
+
     public ComputerDetails() {
         // Use defaults
         state = State.UNKNOWN;

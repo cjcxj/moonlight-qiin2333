@@ -35,8 +35,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.rememberNavController
 import com.limelight.AppView
 import com.limelight.nvstream.http.ComputerDetails
+import com.su.moonlight.next.LocalNavHostController
+import com.su.moonlight.next.ui.game.GameDestination
 import com.su.moonlight.next.utils.safeToSting
 
 @Composable
@@ -62,6 +65,7 @@ fun PcListItem(
     computer: ComputerDetails
 ) {
     val context = LocalContext.current
+    val navController = LocalNavHostController.current
     val alpha by animateFloatAsState(
         when (computer.state) {
             ComputerDetails.State.ONLINE -> 1F
@@ -80,7 +84,8 @@ fun PcListItem(
             .clip(CardDefaults.shape)
             .combinedClickable(
                 onClick = {
-                    context.launchAppList(computer)
+                    if (computer.state == ComputerDetails.State.ONLINE)
+                        navController?.navigate(GameDestination.route(computer.name, computer.uuid))
                 },
                 onLongClick = {
 

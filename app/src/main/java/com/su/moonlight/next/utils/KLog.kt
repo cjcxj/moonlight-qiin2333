@@ -4,6 +4,11 @@ import android.util.Log
 import com.su.moonlight.next.BuildConfig
 
 class KLog(private val tag: String) {
+
+    companion object {
+        val common = KLog("common")
+    }
+
     var printInRelease = true
 
     private inline fun onDeBug(block: () -> Unit) {

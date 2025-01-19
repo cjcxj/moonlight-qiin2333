@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.su.moonlight.next.ui.about.AboutDestination
+import com.su.moonlight.next.ui.game.GameDestination
 import com.su.moonlight.next.ui.main.MainDestination
 
 class HostActivity : AppCompatActivity() {
@@ -19,6 +20,7 @@ class HostActivity : AppCompatActivity() {
                 ) {
                     composableNavDestination(MainDestination)
                     composableNavDestination(AboutDestination)
+                    composableNavDestination(GameDestination)
                 }
             }
         }
