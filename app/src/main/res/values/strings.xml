@@ -534,4 +534,6 @@
     <string name="insert_image_error">Insert image error</string>
     <string name="permission_denied">Permission denied</string>
 
+    <string name="c_saved">screenshot saved</string>
+
 </resources>

@@ -39,7 +39,7 @@ fun About() {
                         testInt++
                         context.startActivity(Intent(context, PcView::class.java))
                     },
-                text = "关于$testInt",
+                text = "点击这里回到旧版，新版UI很不完善",
                 fontSize = 24.sp
             )
         }
