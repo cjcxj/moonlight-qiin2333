@@ -1,6 +1,7 @@
 package com.su.moonlight.next.ui.main.play
 
 import android.app.Activity
+import android.content.Context
 import androidx.collection.ArrayMap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -17,6 +18,7 @@ import com.limelight.nvstream.http.NvApp
 import com.limelight.nvstream.http.NvHTTP
 import com.limelight.nvstream.http.PairingManager
 import com.limelight.utils.CacheHelper
+import com.limelight.utils.ServerHelper
 import com.model.GameApp
 import com.su.moonlight.next.repository.ComputerDetailRepository
 import com.su.moonlight.next.utils.KLog
@@ -34,6 +36,7 @@ class PlayViewModel : ViewModel() {
         printInRelease = false
     }
     private var computerList: ArrayMap<String, ComputerDetails> = ArrayMap()
+    private var currentRunningApp: GameApp? = null
 
     @Composable
     fun collectComputerListState(): State<Collection<ComputerDetails>> {
@@ -79,12 +82,31 @@ class PlayViewModel : ViewModel() {
                         context.cacheDir, "applist", uuid
                     )
                 )?.let { NvHTTP.getAppListByReader(StringReader(it)) as List<NvApp> }
-                    ?.map { GameApp(details, it) }
+                    ?.map { app ->
+                        GameApp(details, app).also {
+                            if (it.running) {
+                                currentRunningApp = it
+                            }
+                        }
+                    }
             }
 
         KLog.common.d("apps=${apps?.joinToString { it.toString() }}")
         return apps
 
+    }
+
+    fun launchCurrentApp(context: Context, onlyInputMode: Boolean) {
+        currentRunningApp?.apply {
+            ServerHelper.doStart(
+                context,
+                nvApp,
+                computer,
+                computer.localUniqueId,
+                false,
+                onlyInputMode
+            )
+        }
     }
 
     override fun onCleared() {

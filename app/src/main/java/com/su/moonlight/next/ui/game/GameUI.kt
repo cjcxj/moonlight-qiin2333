@@ -1,7 +1,10 @@
 package com.su.moonlight.next.ui.game
 
 import android.provider.Contacts.Intents.UI
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -20,6 +23,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,13 +34,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.limelight.AppView
+import com.limelight.nvstream.http.ComputerDetails
 import com.su.moonlight.next.LocalNavDestination
 import com.su.moonlight.next.LocalNavDestinationArgs
 import com.su.moonlight.next.LocalNavHostController
@@ -110,6 +119,7 @@ private fun Game() {
 //            }
 //        }
         LazyColumn(
+            modifier = Modifier.weight(1F),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(8.dp)
         ) {
@@ -119,6 +129,7 @@ private fun Game() {
                 }
             }
         }
+        OnlyInputMode()
     }
 }
 
@@ -136,7 +147,7 @@ private fun RoundDialog(content: @Composable ColumnScope.() -> Unit) {
                 .background(Color.White)
                 .fillMaxSize()
         ) {
-            Column(content = content)
+            Column(modifier = Modifier.fillMaxSize(), content = content)
         }
     }
 }
@@ -176,5 +187,32 @@ private fun CloseAction(onClick: () -> Unit) {
                 tint = Color(0xFF9296A1)
             )
         }
+    }
+}
+
+@Composable
+private fun OnlyInputMode() {
+    val vm = collectViewModel<PlayViewModel>()
+    val context = LocalContext.current
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .clip(CardDefaults.shape)
+            .clip(CardDefaults.shape)
+            .clickable {
+                vm.launchCurrentApp(context, true)
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Text(
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .fillMaxWidth(),
+            text = "仅输入模式",
+            textAlign = TextAlign.Center
+        )
     }
 }
