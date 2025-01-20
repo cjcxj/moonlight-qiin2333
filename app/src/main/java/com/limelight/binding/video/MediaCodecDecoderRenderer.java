@@ -132,6 +132,8 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     private int numFramesIn;
     private int numFramesOut;
 
+    private boolean enable = true;
+
     private MediaCodecInfo findAvcDecoder() {
         MediaCodecInfo decoder = MediaCodecHelper.findProbableSafeDecoder("video/avc", MediaCodecInfo.CodecProfileLevel.AVCProfileHigh);
         if (decoder == null) {
@@ -1224,7 +1226,9 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                     reportedCrash = true;
                     crashListener.notifyCrash(decoderHungException);
                 }
-                throw new RendererException(this, decoderHungException);
+                if (enable) {
+                    throw new RendererException(this, decoderHungException);
+                }
             }
 
             return false;
@@ -1235,8 +1239,10 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
 
     @Override
     public void start() {
-        startRendererThread();
-        startChoreographerThread();
+        if (enable) {
+            startRendererThread();
+            startChoreographerThread();
+        }
     }
 
     // !!! May be called even if setup()/start() fails !!!
@@ -1272,6 +1278,8 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
 
     @Override
     public void stop() {
+        if (!enable)
+            return;
         // May be called already, but we'll call it now to be safe
         prepareForStop();
 
@@ -1807,6 +1815,14 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
             return 0;
         }
         return (int)(globalVideoStats.decoderTimeMs / globalVideoStats.totalFramesReceived);
+    }
+
+    public boolean isEnable() {
+        return enable;
+    }
+
+    public void setEnable(boolean enable) {
+        this.enable = enable;
     }
 
     static class DecoderHungException extends RuntimeException {

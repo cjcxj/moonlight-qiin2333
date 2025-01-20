@@ -24,6 +24,17 @@
         <requestFocus />
     </com.limelight.ui.StreamView>
 
+    <TextView
+        android:id="@+id/onlyInputMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:textSize="24sp"
+        android:textColor="#50FFFFFF"
+        android:visibility="gone"
+        tools:visibility="visible"
+        android:text="仅输入模式"/>
+
 <!--    <com.limelight.ui.ApertureViewGroup-->
 <!--        android:layout_width="match_parent"-->
 <!--        android:layout_height="match_parent"-->

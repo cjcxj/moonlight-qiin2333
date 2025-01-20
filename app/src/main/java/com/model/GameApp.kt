@@ -8,4 +8,6 @@ data class GameApp(val computer: ComputerDetails, val nvApp: NvApp) {
         @JvmStatic
         val EMPTY = GameApp(ComputerDetails(), NvApp())
     }
+
+    val running: Boolean get() = computer.run { state == ComputerDetails.State.ONLINE && runningGameId == nvApp.appId }
 }

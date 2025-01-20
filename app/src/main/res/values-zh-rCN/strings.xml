@@ -314,6 +314,8 @@
     <string name="game_menu_toggle_virtual_model">(显示/隐藏)虚拟手柄</string>
     <string name="game_menu_toggle_virtual_keyboard_model">(显示/隐藏)虚拟全键盘</string>
     <string name="game_menu_switch_touch_sensitivity_model">触控灵敏度切换</string>
+    <string name="game_menu_toggle_mouse_on">启用控制器鼠标模拟</string>
+    <string name="game_menu_toggle_mouse_off">禁用控制器鼠标模拟</string>
     <string name="game_menu_disconnect">断开连接</string>
     <string name="game_menu_cancel">取消</string>
     <string name="game_menu_task_manager">打开任务管理器</string>
@@ -505,6 +507,7 @@
     <string name="screenshot">截屏</string>
     <string name="copy_error">复制失败</string>
     <string name="c_saved">截图已保存</string>
+    <string name="screenshot_saved">截图已保存</string>
     <string name="insert_image_error">插入图片错误</string>
     <string name="permission_denied">权限异常</string>
 

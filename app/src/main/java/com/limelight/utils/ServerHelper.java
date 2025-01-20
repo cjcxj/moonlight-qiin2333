@@ -1,6 +1,7 @@
 package com.limelight.utils;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.widget.Toast;
 
@@ -54,16 +55,23 @@ public class ServerHelper {
     }
 
     public static Intent createStartIntent(
-            Activity parent, NvApp app, ComputerDetails computer,
+            Context parent, NvApp app, ComputerDetails computer,
             ComputerManagerService.ComputerManagerBinder managerBinder,
             boolean withVDisplay) {
         return createStartIntent(parent, app, computer, managerBinder.getUniqueId(), withVDisplay);
     }
 
     public static Intent createStartIntent(
-            Activity parent, NvApp app, ComputerDetails computer,
+            Context parent, NvApp app, ComputerDetails computer,
             String uniqueId,
-            boolean withVDisplay) {
+            boolean withVDisplay){
+        return createStartIntent(parent,app,computer,uniqueId,withVDisplay,false);
+    }
+
+    public static Intent createStartIntent(
+            Context parent, NvApp app, ComputerDetails computer,
+            String uniqueId,
+            boolean withVDisplay,boolean onlyInputMode) {
         Intent intent = new Intent(parent, Game.class);
         intent.putExtra(Game.EXTRA_HOST, computer.activeAddress.address);
         intent.putExtra(Game.EXTRA_PORT, computer.activeAddress.port);
@@ -75,6 +83,7 @@ public class ServerHelper {
         intent.putExtra(Game.EXTRA_PC_UUID, computer.uuid);
         intent.putExtra(Game.EXTRA_PC_NAME, computer.name);
         intent.putExtra(Game.EXTRA_VDISPLAY, withVDisplay);
+        intent.putExtra(Game.EXTRA_ONLY_INPUT_MODE, onlyInputMode);
         try {
             if (computer.serverCert != null) {
                 intent.putExtra(Game.EXTRA_SERVER_CERT, computer.serverCert.getEncoded());
@@ -85,7 +94,7 @@ public class ServerHelper {
         return intent;
     }
 
-    public static void doStart(Activity parent, NvApp app, ComputerDetails computer,
+    public static void doStart(Context parent, NvApp app, ComputerDetails computer,
                                ComputerManagerService.ComputerManagerBinder managerBinder, boolean withVDisplay) {
         if (computer.state == ComputerDetails.State.OFFLINE || computer.activeAddress == null) {
             Toast.makeText(parent, parent.getResources().getString(R.string.pair_pc_offline), Toast.LENGTH_SHORT).show();
@@ -94,7 +103,16 @@ public class ServerHelper {
         parent.startActivity(createStartIntent(parent, app, computer, managerBinder, withVDisplay));
     }
 
-    public static void doStart(Activity parent, NvApp app, ComputerDetails computer,
+    public static void doStart(Context parent, NvApp app, ComputerDetails computer,
+                               String uniqueId, boolean withVDisplay,boolean onlyInputMode) {
+        if (computer.state == ComputerDetails.State.OFFLINE || computer.activeAddress == null) {
+            Toast.makeText(parent, parent.getResources().getString(R.string.pair_pc_offline), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        parent.startActivity(createStartIntent(parent, app, computer, uniqueId, withVDisplay,onlyInputMode));
+    }
+
+    public static void doStart(Context parent, NvApp app, ComputerDetails computer,
                                String uniqueId, boolean withVDisplay) {
         if (computer.state == ComputerDetails.State.OFFLINE || computer.activeAddress == null) {
             Toast.makeText(parent, parent.getResources().getString(R.string.pair_pc_offline), Toast.LENGTH_SHORT).show();

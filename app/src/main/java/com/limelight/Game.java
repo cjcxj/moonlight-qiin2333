@@ -226,6 +226,7 @@ public class Game extends FragmentActivity implements SurfaceHolder.Callback,
     public static final String EXTRA_APP_HDR = "HDR";
     public static final String EXTRA_SERVER_CERT = "ServerCert";
     public static final String EXTRA_VDISPLAY = "VirtualDisplay";
+    public static final String EXTRA_ONLY_INPUT_MODE = "boolean onlyInputMode";
 
     private String host;
     private int port;
@@ -485,6 +486,13 @@ public class Game extends FragmentActivity implements SurfaceHolder.Callback,
                 glPrefs.glRenderer,
                 this);
 
+        boolean onlyInputMode = Game.this.getIntent().getBooleanExtra(EXTRA_ONLY_INPUT_MODE, false);
+        if (onlyInputMode) {
+            //仅输入模式
+            decoderRenderer.setEnable(false);
+            findViewById(R.id.onlyInputMode).setVisibility(View.VISIBLE);
+        }
+
         // Don't stream HDR if the decoder can't support it
         if (willStreamHdr && !decoderRenderer.isHevcMain10Hdr10Supported() && !decoderRenderer.isAv1Main10Supported()) {
             willStreamHdr = false;
@@ -559,19 +567,19 @@ public class Game extends FragmentActivity implements SurfaceHolder.Callback,
                         displayWidth,
                         displayHeight
                 )
-                .setLaunchRefreshRate(prefConfig.fps)
-                .setRefreshRate(chosenFrameRate)
+                .setLaunchRefreshRate(onlyInputMode ? 1 : prefConfig.fps)
+                .setRefreshRate(onlyInputMode ? 1 : chosenFrameRate)
                 .setVirtualDisplay(vDisplay)
                 .setResolutionScaleFactor(prefConfig.resolutionScaleFactor)
                 .setApp(app)
-                .setBitrate(prefConfig.bitrate)
+                .setBitrate(onlyInputMode ? 1 : prefConfig.bitrate)
                 .setEnableSops(prefConfig.enableSops)
                 .enableLocalAudioPlayback(prefConfig.playHostAudio)
                 .setMaxPacketSize(1392)
                 .setRemoteConfiguration(StreamConfiguration.STREAM_CFG_AUTO) // NvConnection will perform LAN and VPN detection
                 .setSupportedVideoFormats(supportedVideoFormats)
                 .setAttachedGamepadMask(gamepadMask)
-                .setClientRefreshRateX100((int)(displayRefreshRate * 100))
+                .setClientRefreshRateX100(onlyInputMode ? 1 : (int) (displayRefreshRate * 100))
                 .setAudioConfiguration(prefConfig.audioConfiguration)
                 .setColorSpace(decoderRenderer.getPreferredColorSpace())
                 .setColorRange(decoderRenderer.getPreferredColorRange())

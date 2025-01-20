@@ -51,15 +51,13 @@ fun GameItem(app: GameApp) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                if (context is Activity) {
-                    ServerHelper.doStart(
-                        context,
-                        app.nvApp,
-                        app.computer,
-                        app.computer.localUniqueId,
-                        false
-                    )
-                }
+                ServerHelper.doStart(
+                    context,
+                    app.nvApp,
+                    app.computer,
+                    app.computer.localUniqueId,
+                    false
+                )
             }) {
         AsyncImage(
             model = app, contentDescription = null, modifier = Modifier
