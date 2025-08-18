@@ -35,6 +35,13 @@ import com.su.moonlight.next.game.menu.options.QuitSessionMenuOption
 import com.su.moonlight.next.game.menu.options.SpecialButtonMenuOption
 import org.json.JSONObject
 
+import android.app.AlertDialog
+import android.widget.EditText
+import android.widget.LinearLayout
+import androidx.compose.material.icons.rounded.Delete
+import org.json.JSONArray
+
+
 class GameMenuPanel(
     private val game: Game,
     private val conn: NvConnection,
@@ -321,33 +328,176 @@ class GameMenuPanel(
         val preferences = game.getSharedPreferences(PREF_NAME, Activity.MODE_PRIVATE)
         val value = preferences.getString(KEY_NAME, "")
 
-        if (!TextUtils.isEmpty(value)) {
-            try {
-                val `object` = JSONObject(value)
-                val array = `object`.optJSONArray("data")
-                if (array != null && array.length() > 0) {
-                    for (i in 0 until array.length()) {
-                        val object1 = array.getJSONObject(i)
-                        val name = object1.optString("name")
-                        val array1 = object1.getJSONArray("data")
-                        val datas = ShortArray(array1.length())
-                        for (j in 0 until array1.length()) {
-                            val code = array1.getString(j)
-                            datas[j] = code.substring(2).toInt(16).toShort()
-                        }
-                        val option = MenuOption(name) { sendKeys(datas) }
-                        options.add(option)
-                    }
+// 在显示自定义导入指令的部分添加删除功能
+if (!TextUtils.isEmpty(value)) {
+    try {
+        val `object` = JSONObject(value)
+        val array = `object`.optJSONArray("data")
+        if (array != null && array.length() > 0) {
+            for (i in 0 until array.length()) {
+                val object1 = array.getJSONObject(i)
+                val name = object1.optString("name")
+                val array1 = object1.getJSONArray("data")
+                val datas = ShortArray(array1.length())
+                for (j in 0 until array1.length()) {
+                    val code = array1.getString(j)
+                    datas[j] = code.substring(2).toInt(16).toShort()
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(game, getString(R.string.wrong_import_format), Toast.LENGTH_SHORT)
-                    .show()
+                val option = MenuOption(name) { sendKeys(datas) }
+                options.add(option)
             }
+
+            // 添加删除所有自定义按键的选项
+            options.add(MenuOption(
+                getString(R.string.game_menu_clear_custom_combinations),
+                false,
+                Icons.Rounded.Delete
+            ) {
+                clearCustomCombinations()
+            })
         }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(game, getString(R.string.wrong_import_format), Toast.LENGTH_SHORT)
+            .show()
+    }
+}
+
+
+        // *** 新增：添加用于创建新组合键的按钮 ***
+        options.add(
+            SpecialButtonMenuOption(getString(R.string.game_menu_add_custom_combination)) {
+                // 这会打开我们的新对话框
+                showAddCombinationDialog()
+            }
+        )
+
         options.add(CancelMenuOption())
 
         showMenuDialog(getString(R.string.game_menu_send_keys), options)
+    }
+
+private fun clearCustomCombinations() {
+    val builder = AlertDialog.Builder(game)
+    builder.setTitle(getString(R.string.clear_custom_combinations_title))
+    builder.setMessage(getString(R.string.clear_custom_combinations_message))
+
+    builder.setPositiveButton(getString(R.string.dialog_yes)) { dialog, _ ->
+        val preferences = game.getSharedPreferences(PREF_NAME, Activity.MODE_PRIVATE)
+        preferences.edit().remove(KEY_NAME).apply()
+        Toast.makeText(game, getString(R.string.custom_combinations_cleared), Toast.LENGTH_SHORT).show()
+        dialog.dismiss()
+        showSpecialKeysMenu() // 刷新菜单
+    }
+
+    builder.setNegativeButton(getString(R.string.dialog_no)) { dialog, _ ->
+        dialog.cancel()
+    }
+
+    builder.show()
+}
+
+
+    private fun showAddCombinationDialog() {
+        val builder = AlertDialog.Builder(game)
+        builder.setTitle(getString(R.string.add_combination_dialog_title))
+
+        // 在一个布局中设置输入框
+        val layout = LinearLayout(game).apply {
+            orientation = LinearLayout.VERTICAL
+            val padding = (16 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding, padding, padding)
+        }
+
+        val nameInput = EditText(game).apply {
+            hint = getString(R.string.add_combination_dialog_name_hint)
+        }
+
+        val keysInput = EditText(game).apply {
+            hint = getString(R.string.add_combination_dialog_keys_hint)
+            // 可选：您可以设置输入类型以获得更好的键盘体验
+            // inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+        }
+
+        layout.addView(nameInput)
+        layout.addView(keysInput)
+
+        builder.setView(layout)
+
+        // 设置按钮
+        builder.setPositiveButton(getString(R.string.add_combination_dialog_save)) { dialog, _ ->
+            val name = nameInput.text.toString().trim()
+            val keysString = keysInput.text.toString().trim()
+
+            if (name.isEmpty()) {
+                Toast.makeText(game, getString(R.string.add_combination_toast_invalid_name), Toast.LENGTH_SHORT).show()
+                return@setPositiveButton
+            }
+
+            if (keysString.isEmpty()) {
+                Toast.makeText(game, getString(R.string.add_combination_toast_invalid_keys), Toast.LENGTH_SHORT).show()
+                return@setPositiveButton
+            }
+
+            // 解析并验证按键码
+            val keyCodes = keysString.split(',').map { it.trim() }
+            val finalKeyArray = JSONArray()
+            try {
+                for (code in keyCodes) {
+                    // 验证格式是否为 "0x" 开头的十六进制
+                    if (!code.startsWith("0x", ignoreCase = true) || code.length <= 2) {
+                        throw NumberFormatException("无效的十六进制格式")
+                    }
+                    // 如果按键码不是有效的十六进制数，这里会抛出异常
+                    code.substring(2).toInt(16)
+                    finalKeyArray.put(code)
+                }
+            } catch (e: NumberFormatException) {
+                Toast.makeText(game, getString(R.string.add_combination_toast_invalid_keys), Toast.LENGTH_SHORT).show()
+                return@setPositiveButton
+            }
+
+            // 保存到 SharedPreferences
+            val preferences = game.getSharedPreferences(PREF_NAME, Activity.MODE_PRIVATE)
+            val currentJsonString = preferences.getString(KEY_NAME, "")
+
+            val rootObject: JSONObject
+            val dataArray: JSONArray
+
+            if (TextUtils.isEmpty(currentJsonString)) {
+                // 如果没有现有数据，则创建新的 JSON 结构
+                rootObject = JSONObject()
+                dataArray = JSONArray()
+                rootObject.put("data", dataArray)
+            } else {
+                // 追加到现有数据中
+                rootObject = JSONObject(currentJsonString)
+                dataArray = rootObject.optJSONArray("data") ?: JSONArray()
+            }
+
+            // 创建新的组合键对象
+            val newCombination = JSONObject().apply {
+                put("name", name)
+                put("data", finalKeyArray)
+            }
+
+            dataArray.put(newCombination)
+
+            // 将更新后的 JSON 保存回首选项
+            preferences.edit().putString(KEY_NAME, rootObject.toString()).apply()
+
+            Toast.makeText(game, getString(R.string.add_combination_toast_saved), Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+
+            // 刷新特殊按键菜单以显示新项目
+            showSpecialKeysMenu()
+        }
+
+        builder.setNegativeButton(getString(R.string.add_combination_dialog_cancel)) { dialog, _ ->
+            dialog.cancel()
+        }
+
+        builder.show()
     }
 
     private fun showAdvancedMenu() {

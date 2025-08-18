@@ -319,7 +319,7 @@
     <string name="game_menu_disconnect">断开连接</string>
     <string name="game_menu_cancel">取消</string>
     <string name="game_menu_task_manager">打开任务管理器</string>
-    <string name="game_menu_send_keys">发送特殊按键</string>
+    <string name="game_menu_send_keys">发送组合按键</string>
     <string name="game_menu_send_keys_ctrl_v">发送 Ctrl + V (粘贴剪切板)</string>
     <string name="game_menu_send_keys_win">发送 Win (打开Windows开始菜单)</string>
     <string name="game_menu_send_keys_win_d">发送 Win + D (返回桌面)</string>
@@ -361,7 +361,7 @@
     <string name="title_additional_settings">附加设置</string>
     <string name="title_quit_dialog">快捷选项</string>
     <string name="summary_quit_dialog">开启后，串流界面点击手机物理返回键 展示相关选项！
-            \n软键盘、性能信息、触控模式切换、发送特殊按键</string>
+            \n软键盘、性能信息、触控模式切换、发送组合按键</string>
     <string name="dialog_custom_resolution">设置完分辨率后，退出设置页面 重新打开生效！</string>
     <string name="summary_custom_resolution">添加一个自定义分辨率,x号分割,比较奇怪的分辨率可能无法生效。
             \n例如：1920x1080
@@ -510,5 +510,23 @@
     <string name="screenshot_saved">截图已保存</string>
     <string name="insert_image_error">插入图片错误</string>
     <string name="permission_denied">权限异常</string>
+
+    <!-- 添加组合按键 -->
+    <string name="game_menu_add_custom_combination">添加自定义组合键…</string>
+    <string name="add_combination_dialog_title">添加自定义组合键</string>
+    <string name="add_combination_dialog_name_hint">快捷键名称 (例如：打开记事本)</string>
+    <string name="add_combination_dialog_keys_hint">按键码 (例如：0xA3, 0x52, 0x4E)</string>
+    <string name="add_combination_dialog_save">保存</string>
+    <string name="add_combination_dialog_cancel">取消</string>
+    <string name="add_combination_toast_saved">组合键已保存！</string>
+    <string name="add_combination_toast_invalid_name">名称不能为空。</string>
+    <string name="add_combination_toast_invalid_keys">按键码格式无效。</string>
+
+    <string name="game_menu_clear_custom_combinations">删除所有自定义按键</string>
+    <string name="clear_custom_combinations_title">清除自定义组合键</string>
+    <string name="clear_custom_combinations_message">确定要删除所有自定义按键组合吗？</string>
+    <string name="custom_combinations_cleared">自定义组合键已清除</string>
+    <string name="dialog_yes">是</string>
+    <string name="dialog_no">否</string>
 
 </resources>

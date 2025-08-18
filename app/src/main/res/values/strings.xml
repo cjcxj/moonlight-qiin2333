@@ -536,4 +536,23 @@
 
     <string name="c_saved">screenshot saved</string>
 
+    <!-- 添加组合按键 -->
+    <string name="game_menu_add_custom_combination">Add custom key combination</string>
+    <string name="add_combination_dialog_title">Add custom key combination</string>
+    <string name="add_combination_dialog_name_hint">Shortcut key name (e.g. Open Notepad)</string>
+    <string name="add_combination_dialog_keys_hint">Key codes (e.g. 0xA3, 0x52, 0x4E)</string>
+    <string name="add_combination_dialog_save">SAVE</string>
+    <string name="add_combination_dialog_cancel">CANCEL</string>
+    <string name="add_combination_toast_saved">The combination key has been saved!</string>
+    <string name="add_combination_toast_invalid_name">The name cannot be empty.</string>
+    <string name="add_combination_toast_invalid_keys">The key code format is invalid.</string>
+
+    <string name="game_menu_clear_custom_combinations">Delete all custom keys</string>
+    <string name="clear_custom_combinations_title">Clear Custom Combinations</string>
+    <string name="clear_custom_combinations_message">Are you sure you want to delete all custom key combinations?</string>
+    <string name="custom_combinations_cleared">Custom combinations cleared</string>
+    <string name="dialog_yes">Yes</string>
+    <string name="dialog_no">No</string>
+
+
 </resources>
