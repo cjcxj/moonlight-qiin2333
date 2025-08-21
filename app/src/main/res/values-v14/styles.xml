@@ -1,12 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <!--
-        Base application theme for API 14+. This theme completely replaces
-        AppBaseTheme from BOTH res/values/styles.xml and
-        res/values-v11/styles.xml on API 14+ devices.
+        这个文件现在是空的。
+        对于 API 14+ 的设备，将直接使用在 res/values/styles.xml 中定义的
+        基于 MaterialComponents 的 AppBaseTheme。
+        我们不需要在这里进行任何特定的覆盖。
     -->
-    <style name="AppBaseTheme" parent="android:Theme.Holo">
-        <!-- API 14 theme customizations can go here. -->
-    </style>
-
 </resources>

@@ -2,56 +2,56 @@
 <resources>
 
     <!--
-        Base application theme, dependent on API level. This theme is replaced
-        by AppBaseTheme from res/values-vXX/styles.xml on newer devices.
-
+        ======================================================================
+        ==                              应用主题                              ==
+        ======================================================================
     -->
-    <style name="AppBaseTheme" parent="android:Theme">
-        <!--
-            Theme customizations available in newer API levels can go in
-            res/values-vXX/styles.xml, while customizations related to
-            backward-compatibility can go here.
 
+    <!--
+        基础应用主题 (已迁移至 Material Components)
+        我们选择 .Bridge 版本以更好地兼容旧项目的属性。
+        .NoActionBar 表示我们自己处理 Toolbar/ActionBar。
+    -->
+    <style name="AppBaseTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar.Bridge">
+        <!--
+            这里可以放置一些基础的、所有主题都会用到的自定义属性。
+            例如，colorPrimary, colorAccent 等。
         -->
+        <item name="colorPrimary">@color/theme_pink_primary</item>
+        <item name="colorPrimaryDark">@color/theme_pink_primary</item>
+        <item name="colorAccent">@color/theme_pink_secondary</item>
     </style>
 
-    <!-- Application theme. -->
+    <!-- 主要的应用主题 -->
     <style name="AppTheme" parent="AppBaseTheme">
-        <!-- All customizations that are NOT specific to a particular API-level can go here. -->
-        <item name="android:windowActionBar">false</item>
-        <item name="android:windowNoTitle">true</item>
         <item name="android:windowBackground">@color/advance_setting_background</item>
+
+        <!-- 沉浸式状态栏和导航栏 (API 21+ 会在 values-v21/styles.xml 中覆盖) -->
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowTranslucentStatus">true</item>
-        <item name="android:windowTranslucentNavigation">true</item>
+
+        <!--
+            为所有 MaterialAlertDialogBuilder 自动应用我们的自定义对话框样式。
+            这样在 Java 代码中就不需要每次都传入主题了。
+        -->
+        <item name="materialAlertDialogTheme">@style/AppDialogStyle</item>
     </style>
 
-    <style name="StreamBaseTheme" parent="AppBaseTheme">
-        <!-- Transparent streaming background to avoid extra overdraw -->
+    <!-- 用于视频流界面的主题，继承自 AppTheme 并设置透明背景 -->
+    <style name="StreamTheme" parent="AppTheme">
         <item name="android:windowBackground">@android:color/transparent</item>
     </style>
 
-    <!-- Stream activity theme -->
-    <style name="StreamTheme" parent="StreamBaseTheme">
-        <!-- All customizations that are NOT specific to a particular API-level can go here. -->
-        <item name="android:windowActionBar">false</item>
-        <item name="android:windowNoTitle">true</item>
-    </style>
-    <style name="KeyboardKeyStyle">
-        <item name="android:background">@drawable/square_border</item>
-        <item name="android:textSize">14sp</item>
-        <item name="android:textColor">#B3FFFFFF</item> <!-- 字体颜色 -->
-        <item name="android:gravity">center</item>
-    </style>
+
+    <!--
+        ======================================================================
+        ==                           Preference (设置界面) 样式                 ==
+        ======================================================================
+    -->
 
     <style name="PreferenceThemeWithShadow" parent="AppTheme">
         <item name="android:textViewStyle">@style/PreferenceTextWithShadow</item>
-        <item name="android:titleTextAppearance">@style/PreferenceTitleWithShadow</item>
-        <item name="android:subtitleTextAppearance">@style/PreferenceSummaryWithShadow</item>
-        <item name="android:colorAccent">@color/theme_pink_secondary</item>
-        <item name="android:textColorPrimary">@color/theme_pink_secondary</item>
-        <item name="android:listDivider">@color/theme_pink_secondary</item>
+        <!-- 注意：PreferenceScreen 的标题和摘要样式需要通过 preferenceTheme 属性在 Activity 的主题中设置 -->
     </style>
 
     <style name="PreferenceTextWithShadow">
@@ -71,29 +71,81 @@
 
     <style name="PreferenceSummaryWithShadow" parent="PreferenceTextWithShadow">
         <item name="android:textSize">14sp</item>
-        <item name="android:textColor">@color/theme_pink_light</item> <!-- 柔和的浅蓝色 -->
+        <item name="android:textColor">@color/theme_pink_light</item>
     </style>
 
     <style name="PreferenceCategoryWithShadow" parent="PreferenceTextWithShadow">
         <item name="android:textSize">20sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/theme_pink_secondary</item> 
-        <item name="android:shadowColor">#AA000000</item> <!-- 更强的阴影 -->
-        <item name="android:shadowRadius">5</item> <!-- 更大的阴影半径 -->
+        <item name="android:textColor">@color/theme_pink_secondary</item>
+        <item name="android:shadowColor">#AA000000</item>
+        <item name="android:shadowRadius">5</item>
     </style>
 
-    <!-- GameMenu 对话框样式 -->
-    <style name="GameMenuDialogStyle" parent="Theme.AppCompat.Light.Dialog.Alert">
+
+    <!--
+        ======================================================================
+        ==                          对话框 (Dialog) 样式                      ==
+        ======================================================================
+    -->
+
+    <!-- 通用弹窗基础样式 (已迁移至 Material Components) -->
+    <style name="BaseDialogStyle" parent="Theme.MaterialComponents.DayNight.Dialog.Alert">
         <item name="android:windowBackground">@drawable/game_menu_dialog_bg</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowAnimationStyle">@style/AppDialogAnimation</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+        <!-- 控件和文本颜色 -->
+        <item name="colorPrimary">@color/theme_pink_primary</item>
+        <item name="colorSecondary">@color/theme_pink_secondary</item>
+        <item name="android:textColorPrimary">@color/theme_pink_primary</item>
+        <item name="android:textColorSecondary">@color/game_menu_text_secondary</item>
+        <!-- 按钮样式 -->
+        <item name="buttonBarPositiveButtonStyle">@style/AppDialogButtonStyle</item>
+        <item name="buttonBarNegativeButtonStyle">@style/AppDialogButtonStyle</item>
+    </style>
+
+    <!-- GameMenu 专用对话框样式，继承自通用样式并自定义宽度 -->
+    <style name="GameMenuDialogStyle" parent="BaseDialogStyle">
         <item name="android:windowMinWidthMajor">576dp</item>
         <item name="android:windowMinWidthMinor">90%</item>
-        <item name="android:windowIsFloating">true</item>
-        <item name="android:windowAnimationStyle">@style/GameMenuDialogAnimation</item>
-        <item name="android:windowSoftInputMode">adjustResize</item>
     </style>
 
+    <!-- App 通用对话框样式 -->
+    <style name="AppDialogStyle" parent="BaseDialogStyle">
+        <item name="android:windowMinWidthMajor">80%</item>
+        <item name="android:windowMinWidthMinor">90%</item>
+    </style>
+
+    <!-- 进度对话框样式 -->
+    <style name="AppProgressDialogStyle" parent="Theme.MaterialComponents.DayNight.Dialog">
+        <item name="android:windowBackground">@drawable/game_menu_dialog_bg</item>
+        <item name="android:windowMinWidthMajor">50%</item>
+        <item name="android:windowMinWidthMinor">80%</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowAnimationStyle">@style/AppDialogAnimation</item>
+        <item name="android:textColorPrimary">@color/theme_pink_primary</item>
+        <item name="colorAccent">@color/theme_pink_primary</item>
+        <item name="android:progressTint">@color/theme_pink_primary</item>
+        <item name="android:indeterminateTint">@color/theme_pink_primary</item>
+        <item name="android:indeterminateDrawable">@drawable/app_progress_indeterminate</item>
+    </style>
+
+    <!-- 对话框动画 -->
+    <style name="AppDialogAnimation">
+        <item name="android:windowEnterAnimation">@anim/game_menu_dialog_enter</item>
+        <item name="android:windowExitAnimation">@anim/game_menu_dialog_exit</item>
+    </style>
+
+
+    <!--
+        ======================================================================
+        ==                         控件 (Widget) 样式                         ==
+        ======================================================================
+    -->
+
     <!-- GameMenu 按钮样式 -->
-    <style name="GameMenuButtonStyle" parent="android:Widget.Button">
+    <style name="GameMenuButtonStyle" parent="Widget.AppCompat.Button.Borderless">
         <item name="android:background">@drawable/game_menu_button_bg</item>
         <item name="android:textColor">@color/game_menu_text_primary</item>
         <item name="android:textSize">14sp</item>
@@ -102,16 +154,19 @@
         <item name="android:paddingRight">6dp</item>
         <item name="android:minHeight">36dp</item>
         <item name="android:gravity">center</item>
-        <item name="android:stateListAnimator">@null</item>
-        <item name="android:elevation">0dp</item>
-        <item name="android:clickable">true</item>
-        <item name="android:focusable">true</item>
         <item name="android:drawablePadding">4dp</item>
-        <item name="android:foreground">?android:attr/selectableItemBackground</item>
     </style>
 
-    <!-- GameMenu 列表项样式 -->
-    <style name="GameMenuListItemStyle" parent="android:Widget.ListView">
+    <!-- App 通用对话框按钮样式 -->
+    <style name="AppDialogButtonStyle" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:background">@drawable/game_menu_button_bg</item>
+        <item name="android:textColor">@color/theme_pink_primary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- GameMenu 列表项样式 (通常在 Adapter 的 getView 中设置) -->
+    <style name="GameMenuListItemStyle">
         <item name="android:background">@drawable/game_menu_list_item_bg</item>
         <item name="android:textColor">@color/game_menu_text_primary</item>
         <item name="android:textSize">14sp</item>
@@ -120,61 +175,12 @@
         <item name="android:gravity">center_vertical</item>
     </style>
 
-    <!-- GameMenu 对话框动画 -->
-    <style name="GameMenuDialogAnimation">
-        <item name="android:windowEnterAnimation">@anim/game_menu_dialog_enter</item>
-        <item name="android:windowExitAnimation">@anim/game_menu_dialog_exit</item>
-    </style>
-
-    <!-- 通用弹窗样式 -->
-    <style name="AppDialogStyle" parent="Theme.AppCompat.Light.Dialog.Alert">
-        <item name="android:windowBackground">@drawable/game_menu_dialog_bg</item>
-        <item name="android:windowMinWidthMajor">80%</item>
-        <item name="android:windowMinWidthMinor">90%</item>
-        <item name="android:windowIsFloating">true</item>
-        <item name="android:windowAnimationStyle">@style/AppDialogAnimation</item>
-        <item name="android:windowSoftInputMode">adjustResize</item>
-        <item name="android:textColorPrimary">@color/theme_pink_primary</item>
-        <item name="android:textColorSecondary">@color/game_menu_text_secondary</item>
-        <item name="android:colorAccent">@color/theme_pink_primary</item>
-        <item name="android:listDivider">@color/theme_pink_primary</item>
-    </style>
-
-    <!-- 通用弹窗动画 -->
-    <style name="AppDialogAnimation">
-        <item name="android:windowEnterAnimation">@anim/game_menu_dialog_enter</item>
-        <item name="android:windowExitAnimation">@anim/game_menu_dialog_exit</item>
-    </style>
-
-    <!-- 通用按钮样式 -->
-    <style name="AppDialogButtonStyle" parent="android:Widget.Button">
-        <item name="android:background">@drawable/game_menu_button_bg</item>
-        <item name="android:textColor">@color/theme_pink_primary</item>
+    <!-- 虚拟键盘按键样式 -->
+    <style name="KeyboardKeyStyle">
+        <item name="android:background">@drawable/square_border</item>
         <item name="android:textSize">14sp</item>
-        <item name="android:textStyle">bold</item>
-        <item name="android:paddingLeft">12dp</item>
-        <item name="android:paddingRight">12dp</item>
-        <item name="android:paddingTop">8dp</item>
-        <item name="android:paddingBottom">8dp</item>
-        <item name="android:minHeight">40dp</item>
+        <item name="android:textColor">#B3FFFFFF</item>
         <item name="android:gravity">center</item>
-        <item name="android:stateListAnimator">@null</item>
-        <item name="android:elevation">0dp</item>
-        <item name="android:clickable">true</item>
-        <item name="android:focusable">true</item>
     </style>
 
-    <!-- 进度对话框样式 -->
-    <style name="AppProgressDialogStyle" parent="Theme.AppCompat.Light.Dialog">
-        <item name="android:windowBackground">@drawable/game_menu_dialog_bg</item>
-        <item name="android:windowMinWidthMajor">50%</item>
-        <item name="android:windowMinWidthMinor">80%</item>
-        <item name="android:windowIsFloating">true</item>
-        <item name="android:windowAnimationStyle">@style/AppDialogAnimation</item>
-        <item name="android:textColorPrimary">@color/theme_pink_primary</item>
-        <item name="android:colorAccent">@color/theme_pink_primary</item>
-        <item name="android:progressTint">@color/theme_pink_primary</item>
-        <item name="android:indeterminateTint">@color/theme_pink_primary</item>
-        <item name="android:indeterminateDrawable">@drawable/app_progress_indeterminate</item>
-    </style>
 </resources>
