@@ -29,7 +29,7 @@ jobs:
       run: ./gradlew assembleDebug
 
     - name: Upload Debug APK
-      uses: actions/upload-artifact@v3 # 使用 upload-artifact action 来上传文件
+      uses: actions/upload-artifact@v4 # 将版本从 v3 更新为 v4
       with:
-        name: app-debug.apk # 上传文件的名称
-        path: app\build\outputs\apk\nonRoot\debug\app-nonRoot-debug.apk # APK 文件的实际路径
+        name: app-nonRoot-debug.apk # 上传文件的名称
+        path: app/build/outputs/apk/nonRoot/debug/app-nonRoot-debug.apk # APK 文件的实际路径
