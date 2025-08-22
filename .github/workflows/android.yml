@@ -2,9 +2,9 @@ name: Android CI - Build and Upload APK
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "cjcxj-patch-1" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "cjcxj-patch-1" ]
 
 jobs:
   build_apk: # 将作业名称改为更具描述性
