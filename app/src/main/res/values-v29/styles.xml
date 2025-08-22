@@ -1,8 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="AppBaseTheme" parent="android:Theme.Material">
-        <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <!-- Avoid some systems like MIUI which break the visibility of games title -->
+    <!--
+        API 29+ 的主题。
+        继承自基础 AppTheme，并添加了禁用强制深色模式的属性。
+    -->
+    <style name="AppTheme" parent="AppBaseTheme">
+        <!-- 禁用强制深色模式，以避免在某些系统上（如MIUI）破坏游戏标题的可见性 -->
         <item name="android:forceDarkAllowed">false</item>
     </style>
 </resources>

@@ -39,11 +39,13 @@ import android.content.SharedPreferences;
 import android.text.TextUtils;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import java.util.ArrayList;
-import java.util.List;
+
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder; // 引入新的 Builder
+import com.google.android.material.textfield.TextInputEditText; // 引入新的 EditText
+
 
 /**
  * 提供游戏流媒体进行中的选项菜单
@@ -853,11 +855,11 @@ public class GameMenu {
         boolean hasCustomKeys = loadAndAddCustomKeys(options);
 
         //  添加 "添加自定义按键" 选项
-        options.add(new MenuOption(getString(R.string.game_menu_add_custom_key), false, this::showAddCustomKeyDialog, null, false));
+        options.add(new MenuOption(getString(R.string.game_menu_add_custom_key), false, this::showAddCustomKeyDialog1, null, false));
 
         //  如果存在自定义按键，则添加 "删除" 选项
         if (hasCustomKeys) {
-            options.add(new MenuOption(getString(R.string.game_menu_delete_custom_key), false, this::showDeleteKeysDialog, null, false));
+            options.add(new MenuOption(getString(R.string.game_menu_delete_custom_key), false, this::showDeleteKeysDialog1, null, false));
         }
 
         //  添加 "取消" 选项
@@ -927,6 +929,41 @@ public class GameMenu {
         builder.setView(layout);
 
         // 设置按钮
+        builder.setPositiveButton(R.string.dialog_button_save, (dialog, which) -> {
+            String name = nameInput.getText().toString().trim();
+            String keys = keysInput.getText().toString().trim();
+
+            if (TextUtils.isEmpty(name) || TextUtils.isEmpty(keys)) {
+                Toast.makeText(game, R.string.toast_name_and_codes_cannot_be_empty, Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // 验证并保存按键
+            saveCustomKey(name, keys);
+        });
+        builder.setNegativeButton(R.string.dialog_button_cancel, (dialog, which) -> dialog.cancel());
+
+        builder.show();
+    }
+
+
+    private void showAddCustomKeyDialog1() {
+        // 使用 MaterialAlertDialogBuilder
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(game);
+        builder.setTitle(R.string.dialog_title_add_custom_key);
+
+        // 1. 加载 (Inflate) 我们的 XML 布局文件
+        LayoutInflater inflater = LayoutInflater.from(game);
+        View dialogView = inflater.inflate(R.layout.dialog_add_custom_key, null);
+
+        // 2. 从加载的视图中找到我们的输入框
+        final TextInputEditText nameInput = dialogView.findViewById(R.id.nameInput);
+        final TextInputEditText keysInput = dialogView.findViewById(R.id.keysInput);
+
+        // 3. 将这个视图设置给对话框
+        builder.setView(dialogView);
+
+        // 设置按钮 (逻辑和原来一样)
         builder.setPositiveButton(R.string.dialog_button_save, (dialog, which) -> {
             String name = nameInput.getText().toString().trim();
             String keys = keysInput.getText().toString().trim();
@@ -1057,6 +1094,95 @@ public class GameMenu {
 
         } catch (Exception e) {
             LimeLog.warning("Exception while loading key list" + e.getMessage());
+            Toast.makeText(game, R.string.toast_load_key_list_failed, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+    private void showDeleteKeysDialog1() {
+        SharedPreferences preferences = game.getSharedPreferences(PREF_NAME, Activity.MODE_PRIVATE);
+        String value = preferences.getString(KEY_NAME, "");
+
+        // 检查是否有数据，这部分逻辑保持不变
+        if (TextUtils.isEmpty(value)) {
+            Toast.makeText(game, R.string.toast_no_custom_keys_to_delete, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            JSONObject root = new JSONObject(value);
+            JSONArray dataArray = root.optJSONArray("data");
+
+            if (dataArray == null || dataArray.length() == 0) {
+                Toast.makeText(game, R.string.toast_no_custom_keys_to_delete, Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // 准备要在对话框中显示的列表项名称
+            final List<String> keyNames = new ArrayList<>();
+            for (int i = 0; i < dataArray.length(); i++) {
+                keyNames.add(dataArray.getJSONObject(i).optString("name"));
+            }
+
+            // 用于跟踪哪些项被选中
+            final boolean[] checkedItems = new boolean[keyNames.size()];
+
+            // 2. 将 AlertDialog.Builder 替换为 MaterialAlertDialogBuilder
+            MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(game);
+            builder.setTitle(R.string.dialog_title_select_keys_to_delete);
+
+            // setMultiChoiceItems 会自动使用 Material Design 风格的复选框
+            builder.setMultiChoiceItems(keyNames.toArray(new CharSequence[0]), checkedItems,
+                    (dialog, which, isChecked) -> {
+                        // 当用户点击一个复选框时，更新 checkedItems 数组
+                        checkedItems[which] = isChecked;
+                    });
+
+            // PositiveButton 和 NegativeButton 也会自动应用 Material Design 风格
+            builder.setPositiveButton(R.string.dialog_button_delete, (dialog, which) -> {
+                try {
+                    // 检查是否有任何项目被选中，如果没有，则不执行任何操作
+                    boolean hasSelection = false;
+                    for (boolean checked : checkedItems) {
+                        if (checked) {
+                            hasSelection = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasSelection) {
+                        // 如果用户没有选择任何项就点击了删除，可以给一个提示或直接忽略
+                        return;
+                    }
+
+                    // 关键：从后往前遍历，防止索引错乱
+                    for (int i = checkedItems.length - 1; i >= 0; i--) {
+                        if (checkedItems[i]) {
+                            dataArray.remove(i); // 从 JSONArray 中移除
+                        }
+                    }
+
+                    // 将修改后的 JSON 写回 SharedPreferences
+                    root.put("data", dataArray);
+                    SharedPreferences.Editor editor = preferences.edit();
+                    editor.putString(KEY_NAME, root.toString());
+                    editor.apply();
+
+                    Toast.makeText(game, R.string.toast_selected_keys_deleted, Toast.LENGTH_SHORT).show();
+
+                } catch (Exception e) {
+                    LimeLog.warning("Exception while deleting keys: " + e.getMessage());
+                    Toast.makeText(game, R.string.toast_delete_failed, Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            builder.setNegativeButton(R.string.dialog_button_cancel, null);
+
+            // create() 和 show() 保持不变
+            builder.create().show();
+
+        } catch (Exception e) {
+            LimeLog.warning("Exception while loading key list: " + e.getMessage());
             Toast.makeText(game, R.string.toast_load_key_list_failed, Toast.LENGTH_SHORT).show();
         }
     }

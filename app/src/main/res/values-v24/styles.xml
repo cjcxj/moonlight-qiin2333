@@ -1,12 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <!--
-      Use a black background to avoid the transparent background when switching apps.
-      android:windowBackgroundFallback is supposed to do this, but it wasn't working for
-      me as of Android 7.1
+        为 API 24+ 的 StreamTheme 提供一个备用背景色，
+        以避免在切换应用时出现透明背景。
+        它继承自基础 StreamTheme。
     -->
-    <style name="StreamBaseTheme" parent="AppBaseTheme">
+    <style name="StreamTheme" parent="AppTheme">
+        <!-- Stream activity theme -->
         <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
     </style>
-
 </resources>

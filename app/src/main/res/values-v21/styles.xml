@@ -1,14 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <!--
-        Base application theme for API 21+. This theme completely replaces
-        AppBaseTheme from BOTH res/values/styles.xml and
-        res/values-v21/styles.xml on API 21+ devices.
+        API 21+ 的主题。
+        它继承自 res/values/styles.xml 中定义的 AppBaseTheme，
+        然后添加了只有 API 21+ 才支持的沉浸式属性。
     -->
-    <style name="AppBaseTheme" parent="android:Theme.Material">
-        <!-- API 21 theme customizations can go here. -->
-        <item name="android:statusBarColor">#212121</item>
-        <item name="android:navigationBarColor">#212121</item>
+    <style name="AppTheme" parent="AppBaseTheme">
+        <!-- 激活沉浸式状态栏和导航栏 -->
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
     </style>
-
 </resources>
