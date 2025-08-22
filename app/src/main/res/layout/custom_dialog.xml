@@ -172,7 +172,7 @@
                     android:divider="@null"
                     android:dividerHeight="1dp"
                     android:fadeScrollbars="false"
-                    android:scrollbars="vertical" />
+                    android:scrollbars="none" />
 
             </LinearLayout>
 
