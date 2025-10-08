@@ -196,6 +196,7 @@ public class PreferenceConfiguration {
     public static final int FRAME_PACING_CAP_FPS = 2;
     public static final int FRAME_PACING_MAX_SMOOTHNESS = 3;
     public static final int FRAME_PACING_EXPERIMENTAL_LOW_LATENCY = 4;
+    public static final int FRAME_PACING_SURFACE_FLINGER_RAW = 5;
 
     public static final String RES_360P = "640x360";
     public static final String RES_480P = "854x480";
@@ -553,6 +554,9 @@ public class PreferenceConfiguration {
         else if (str.equals("experimental-low-latency")) {
             return FRAME_PACING_EXPERIMENTAL_LOW_LATENCY;
         }
+        else if (str.equals("surface-flinger-raw")) {
+            return FRAME_PACING_SURFACE_FLINGER_RAW;
+        }
         else {
             // Should never get here
             return FRAME_PACING_MIN_LATENCY;
@@ -851,6 +855,16 @@ public class PreferenceConfiguration {
     }
 
     public boolean writePreferences(Context context) {
+        return writePreferences(context, false);
+    }
+
+    /**
+     * 写入设置到SharedPreferences
+     * @param context 上下文
+     * @param synchronous 是否同步写入（true使用commit，false使用apply）
+     * @return 是否成功
+     */
+    public boolean writePreferences(Context context, boolean synchronous) {
         if (context == null) {
             return false;
         }
@@ -889,7 +903,7 @@ public class PreferenceConfiguration {
                     break;
             }
             
-            prefs.edit()
+            SharedPreferences.Editor editor = prefs.edit()
                     .putString(RESOLUTION_PREF_STRING, width + "x" + height)
                     .putString(FPS_PREF_STRING, String.valueOf(fps))
                     .putInt(BITRATE_PREF_STRING, bitrate)
@@ -910,9 +924,14 @@ public class PreferenceConfiguration {
                     .putFloat(GYRO_SENSITIVITY_MULTIPLIER_PREF_STRING, gyroSensitivityMultiplier)
                     .putBoolean(GYRO_INVERT_X_AXIS_PREF_STRING, gyroInvertXAxis)
                     .putBoolean(GYRO_INVERT_Y_AXIS_PREF_STRING, gyroInvertYAxis)
-                    .putInt(GYRO_ACTIVATION_KEY_CODE_PREF_STRING, gyroActivationKeyCode)
-                    .apply();
-            return true;
+                    .putInt(GYRO_ACTIVATION_KEY_CODE_PREF_STRING, gyroActivationKeyCode);
+            
+            if (synchronous) {
+                return editor.commit();
+            } else {
+                editor.apply();
+                return true;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             return false;

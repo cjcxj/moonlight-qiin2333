@@ -16,6 +16,7 @@ import android.graphics.Insets;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.LocaleList;
+import android.view.Display;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowManager;
@@ -132,13 +133,15 @@ public class UiHelper {
         }
 
         if (modeMgr.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION) {
-            // Increase view padding on TVs
-            float scale = activity.getResources().getDisplayMetrics().density;
-            int verticalPaddingPixels = (int) (TV_VERTICAL_PADDING_DP*scale + 0.5f);
-            int horizontalPaddingPixels = (int) (TV_HORIZONTAL_PADDING_DP*scale + 0.5f);
+            // Only apply legacy overscan padding on pre-Android 10 TVs
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                float scale = activity.getResources().getDisplayMetrics().density;
+                int verticalPaddingPixels = (int) (TV_VERTICAL_PADDING_DP*scale + 0.5f);
+                int horizontalPaddingPixels = (int) (TV_HORIZONTAL_PADDING_DP*scale + 0.5f);
 
-            rootView.setPadding(horizontalPaddingPixels, verticalPaddingPixels,
-                    horizontalPaddingPixels, verticalPaddingPixels);
+                rootView.setPadding(horizontalPaddingPixels, verticalPaddingPixels,
+                        horizontalPaddingPixels, verticalPaddingPixels);
+            }
         }
         else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // Draw under the status bar on Android Q devices
@@ -310,5 +313,21 @@ public class UiHelper {
         }
         
         return false;
+    }
+
+    /**
+     * 获取设备支持的刷新率
+     * @param activity 活动上下文
+     * @return 设备刷新率（Hz），如果获取失败则返回默认值60Hz
+     */
+    public static float getDeviceRefreshRate(Activity activity) {
+        try {
+            Display display = activity.getWindowManager().getDefaultDisplay();
+            return display.getRefreshRate();
+        } catch (Exception e) {
+            LimeLog.warning("Failed to get device refresh rate: " + e.getMessage());
+            // 如果获取失败，返回默认值60Hz
+            return 60.0f;
+        }
     }
 }

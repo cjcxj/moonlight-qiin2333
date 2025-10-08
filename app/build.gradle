@@ -11,17 +11,17 @@ if (hasGoogleServicesJson && (project.hasProperty('enableAnalytics') || gradle.s
 android {
     ndkVersion "27.0.12077973"
 
-    compileSdk 34
+    compileSdk 35
 
 
     namespace 'com.limelight'
 
     defaultConfig {
         minSdk 22
-        targetSdk 34
+        targetSdk 35
 
-        versionName "12.3.8"
-        versionCode = 337
+        versionName "12.3.10"
+        versionCode = 339
 
         // Generate native debug symbols to allow Google Play to symbolicate our native crashes
         ndk.debugSymbolLevel = 'FULL'
@@ -179,6 +179,7 @@ dependencies {
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     implementation 'jp.wasabeef:glide-transformations:4.3.0'
     implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.4.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
     
     // Firebase Analytics

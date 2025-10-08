@@ -3,7 +3,7 @@
   
   # Moonlight V+ 威力加强版
   
-  [![Version](https://img.shields.io/badge/version-12.3.7-blue.svg)](https://github.com/qiin2333/moonlight-android/releases/tag/shortcut)
+  [![Version](https://img.shields.io/badge/version-12.3.9-blue.svg)](https://github.com/qiin2333/moonlight-android/releases/tag/shortcut)
   [![Android](https://img.shields.io/badge/Android-5.0+-green.svg)](https://developer.android.com/about/versions)
   [![License](https://img.shields.io/badge/license-GPL%20v3-orange.svg)](LICENSE.txt)
   [![Stars](https://img.shields.io/github/stars/qiin2333/moonlight-android?style=social)](https://github.com/qiin2333/moonlight-android)
@@ -140,10 +140,11 @@ cd moonlight-android
 
 ### 需要 Sunshine 基地版支持的功能
 - 🎤 麦克风重定向
+- 〰️ 实时码率调整
 - 🎮 超级菜单指令
 - 🎨 应用桌面美化
-- 🎯 自定义分辨率串流
-- 🔋 串流自动启用 HDR 校准文件
+- 📱 自定义分辨率串流
+- 📸 串流自动启用 HDR 校准文件
 
 
 ## 🤝 贡献
