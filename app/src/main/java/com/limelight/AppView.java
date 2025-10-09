@@ -89,6 +89,7 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
     private RecyclerView currentRecyclerView;
     private AdapterRecyclerBridge currentAdapterBridge;
     private boolean isFirstFocus = true; // 跟踪是否是第一次获得焦点
+    private View currentSelectionIndicator; // 跟踪当前显示的选中框
 
     // 防抖相关变量
     private final Handler backgroundChangeHandler = new Handler(Looper.getMainLooper());
@@ -119,9 +120,13 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
     public final static String SELECTED_ADDRESS_EXTRA = "SelectedAddress";
     public final static String SELECTED_PORT_EXTRA = "SelectedPort";
 
-    private final static int DEFAULT_VERTICAL_SPAN_COUNT = 2;
-    private final static int DEFAULT_HORIZONTAL_SPAN_COUNT = 1;
-    private final static int VERTICAL_SINGLE_ROW_THRESHOLD = 5; // 竖屏时，app数量小于等于4个时使用1行
+    // Layout constants
+    private static final int VERTICAL_SPAN_COUNT = 2;  // 竖屏模式默认双列
+    private static final int HORIZONTAL_SPAN_COUNT = 1;  // 横屏模式单行
+    private static final int VERTICAL_SINGLE_ROW_THRESHOLD = 5; // 竖屏时，app数量小于等于4个时使用1行
+    private static final float VISIBLE_ROW_COUNT = 3.5F; //卡片容器的高度
+    // 定义应用图标在边缘时的最低可见度
+    private static final float MIN_ITEM_ALPHA = 0f;
 
     private ComputerManagerService.ComputerManagerBinder managerBinder;
     private final ServiceConnection serviceConnection = new ServiceConnection() {
@@ -221,13 +226,6 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
                 getFragmentManager().beginTransaction()
                         .replace(R.id.appFragmentContainer, new AdapterFragment())
                         .commitAllowingStateLoss();
-
-                // 延迟检查布局，等待Fragment重新创建完成
-                new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                    if (currentRecyclerView != null) {
-                        checkAndUpdateLayout(currentRecyclerView);
-                    }
-                }, 100);
             } catch (IllegalStateException e) {
                 e.printStackTrace();
             }
@@ -360,13 +358,7 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
         });
 
         // Initialize selection indicator animator
-        View selectionIndicator = findViewById(R.id.selectionIndicator);
-        selectionAnimator = new SelectionIndicatorAnimator(
-                selectionIndicator,
-                null, // RecyclerView will be set later
-                null, // Adapter will be set later
-                findViewById(android.R.id.content)
-        );
+        selectionAnimator = new SelectionIndicatorAnimator();
         selectionAnimator.setPositionProvider(() -> selectedPosition);
 
         // Allow floating expanded PiP overlays while browsing apps
@@ -502,22 +494,22 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
      */
     private int calculateOptimalSpanCount(int orientation) {
         if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            return DEFAULT_HORIZONTAL_SPAN_COUNT;
+            return HORIZONTAL_SPAN_COUNT;
         } else {
             // 竖屏：根据app数量固定阈值判断
             if (appGridAdapter == null) {
-                return DEFAULT_VERTICAL_SPAN_COUNT;
+                return VERTICAL_SPAN_COUNT;
             }
 
             int appCount = appGridAdapter.getCount();
             if (appCount == 0) {
-                return DEFAULT_VERTICAL_SPAN_COUNT;
+                return VERTICAL_SPAN_COUNT;
             }
 
             if (appCount <= VERTICAL_SINGLE_ROW_THRESHOLD) {
-                return DEFAULT_HORIZONTAL_SPAN_COUNT;
+                return HORIZONTAL_SPAN_COUNT;
             } else {
-                return DEFAULT_VERTICAL_SPAN_COUNT;
+                return VERTICAL_SPAN_COUNT;
             }
         }
     }
@@ -539,8 +531,16 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
 
         // 移动选中框动画
         if (selectionAnimator != null) {
-            selectionAnimator.moveToPosition(position, isFirstFocus);
-            isFirstFocus = false; // 第一次后设置为false
+            RecyclerView.ViewHolder viewHolder = currentRecyclerView.findViewHolderForAdapterPosition(position);
+            if (viewHolder != null) {
+                View newSelectionIndicator = viewHolder.itemView.findViewById(R.id.selectionIndicator);
+                if (currentSelectionIndicator != null && currentSelectionIndicator != newSelectionIndicator) {
+                    currentSelectionIndicator.setVisibility(View.INVISIBLE); // 隐藏旧的选中框
+                }
+                selectionAnimator.moveToPosition(newSelectionIndicator, isFirstFocus);
+                currentSelectionIndicator = newSelectionIndicator;
+                isFirstFocus = false; // 第一次后设置为false
+            }
         }
 
         // 更新上一次设置信息显示
@@ -614,6 +614,18 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
     }
 
     /**
+     * 获取当前使用的item高度 (New Method)
+     *
+     * @return item高度（像素）
+     */
+    private int getCurrentItemHeight() {
+        // This assumes items are roughly square. If your grid_item_app layouts
+        // have a different aspect ratio, you should adjust this value or retrieve
+        // it from a dimension resource.
+        return getCurrentItemWidth();
+    }
+
+    /**
      * 判断当前是否为大图标模式
      *
      * @return true为大图标模式，false为小图标模式
@@ -622,37 +634,6 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
         // 根据PreferenceConfiguration判断显示模式
         PreferenceConfiguration prefs = PreferenceConfiguration.readPreferences(this);
         return !prefs.smallIconMode; // smallIconMode为false表示大图标模式
-    }
-
-    /**
-     * 检查并更新布局（竖屏时根据app数量调整行数）
-     */
-    private void checkAndUpdateLayout(RecyclerView recyclerView) {
-        if (recyclerView == null || appGridAdapter == null) {
-            return;
-        }
-
-        // 检查LayoutManager是否已经设置
-        if (recyclerView.getLayoutManager() == null) {
-            return;
-        }
-
-        int orientation = getResources().getConfiguration().orientation;
-        if (orientation == Configuration.ORIENTATION_PORTRAIT) {
-            int currentSpanCount = ((GridLayoutManager) recyclerView.getLayoutManager()).getSpanCount();
-            int optimalSpanCount = calculateOptimalSpanCount(orientation);
-
-            if (currentSpanCount != optimalSpanCount) {
-                // 需要更新布局
-                GridLayoutManager newGlm = new GridLayoutManager(this, optimalSpanCount, GridLayoutManager.HORIZONTAL, false);
-                recyclerView.setLayoutManager(newGlm);
-
-                // 重新计算选中框位置
-                if (selectionAnimator != null && selectedPosition >= 0) {
-                    selectionAnimator.moveToPosition(selectedPosition, false);
-                }
-            }
-        }
     }
 
     private void populateAppGridWithCache() {
@@ -1027,14 +1008,10 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
             // Set first app's cover as background if no current background
             setFirstAppAsBackground(newAppObjects);
 
-            // 检查并更新布局（竖屏时根据app数量调整行数）
+            // *** 新增调用 ***
+            // After the adapter has been updated, re-calculate the centering.
             if (currentRecyclerView != null) {
-                checkAndUpdateLayout(currentRecyclerView);
-                
-                // 重新计算居中布局
-                int orientation = getResources().getConfiguration().orientation;
-                int spanCount = calculateOptimalSpanCount(orientation);
-                setupCenterAlignment(currentRecyclerView, spanCount);
+                setupCenterAlignment(currentRecyclerView);
             }
         });
     }
@@ -1122,14 +1099,17 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
         // 创建并设置bridge adapter
         setupBridgeAdapter(rv);
 
-        // 配置布局管理器
+        // 配置布局管理器 (Modified)
         setupLayoutManager(rv);
 
         // 优化RecyclerView性能
         optimizeRecyclerViewPerformance(rv);
 
-        // 设置事件监听器
+        // 设置事件监听器 (Modified)
         setupRecyclerViewListeners(rv);
+
+        // Apply fading effect after the layout is complete
+        rv.post(() -> applyFadingEffect(rv));
 
         // 应用UI配置
         UiHelper.applyStatusBarPadding(rv);
@@ -1156,45 +1136,82 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
         bridge.setOnItemLongClickListener(this::handleItemLongClick);
     }
 
+    /**
+     * Configures GridLayoutManager based on screen orientation
+     */
     private void setupLayoutManager(RecyclerView rv) {
         int orientation = getResources().getConfiguration().orientation;
-        int spanCount = calculateOptimalSpanCount(orientation);
-        GridLayoutManager glm = new GridLayoutManager(this, spanCount, GridLayoutManager.HORIZONTAL, false);
-        rv.setLayoutManager(glm);
-
-        // 设置预加载
-        glm.setInitialPrefetchItemCount(4);
+        boolean isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE;
         
-        // 设置居中布局
-        setupCenterAlignment(rv, spanCount);
+        GridLayoutManager glm;
+        if (isLandscape) {
+            // 横屏：水平滚动，单行大图标
+            glm = new GridLayoutManager(this, HORIZONTAL_SPAN_COUNT, GridLayoutManager.HORIZONTAL, false);
+            glm.setInitialPrefetchItemCount(4); // 预加载4个项目
+            
+            // 横屏模式下高度填满父容器
+            rv.post(() -> {
+                ViewGroup.LayoutParams params = rv.getLayoutParams();
+                params.height = ViewGroup.LayoutParams.MATCH_PARENT;
+                rv.setLayoutParams(params);
+            });
+        } else {
+            // 竖屏：根据项目数量决定列数
+            int spanCount = calculateOptimalSpanCount(orientation);
+            glm = new GridLayoutManager(this, spanCount, GridLayoutManager.VERTICAL, false);
+            glm.setInitialPrefetchItemCount( (spanCount * (int)(VISIBLE_ROW_COUNT + 1)));
+            
+            // 设置固定高度显示指定行数
+            rv.post(() -> {
+                int itemHeight = getCurrentItemHeight();
+                int desiredHeight = (int) (VISIBLE_ROW_COUNT * itemHeight * 1.05f);
+                
+                ViewGroup.LayoutParams params = rv.getLayoutParams();
+                if (params.height != desiredHeight) {
+                    params.height = desiredHeight;
+                    rv.setLayoutParams(params);
+                }
+            });
+        }
+        
+        rv.setLayoutManager(glm);
+        setupCenterAlignment(rv);
     }
 
+
     /**
-     * 设置RecyclerView的居中对齐
+     * NEW: 设置RecyclerView的居中对齐
+     * Dynamically calculates and sets horizontal padding on the RecyclerView
+     * to center its content (the two columns of apps).
      */
-    private void setupCenterAlignment(RecyclerView rv, int spanCount) {
+    private void setupCenterAlignment(RecyclerView rv) {
+        // We need to wait for the layout to be drawn to get the correct widths.
         rv.post(() -> {
-            if (appGridAdapter == null) {
+            if (appGridAdapter == null || rv.getWidth() == 0) {
                 return;
             }
-            
-            int itemCount = appGridAdapter.getCount();
-            int totalRows = (int) Math.ceil((double) itemCount / spanCount);
-            int screenWidth = getResources().getDisplayMetrics().widthPixels;
-            int actualItemSize = getCurrentItemWidth();
-            
-            // 如果RecyclerView已经有子视图,优先使用实际测量的尺寸
-            if (rv.getChildCount() > 0) {
-                View firstChild = rv.getChildAt(0);
-                if (firstChild != null && firstChild.getWidth() > 0) {
-                    actualItemSize = firstChild.getWidth();
-                }
-            }
 
-            // 计算并设置居中padding
-            int totalWidth = actualItemSize * totalRows;
-            int horizontalPadding = totalWidth < screenWidth ? (screenWidth - totalWidth) / 2 : 0;
-            rv.setPadding(horizontalPadding, rv.getPaddingTop(), horizontalPadding, rv.getPaddingBottom());
+            int orientation = getResources().getConfiguration().orientation;
+            boolean isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE;
+            
+            if (isLandscape) {
+                // 横屏模式：居中单个项目
+                int recyclerViewHeight = rv.getHeight();
+                int itemHeight = getCurrentItemHeight();
+                int topPadding = Math.max(0, (recyclerViewHeight - itemHeight) / 2);
+                rv.setPadding(rv.getPaddingLeft(), topPadding, rv.getPaddingRight(), topPadding);
+            } else {
+                // 竖屏模式：根据实际项目数量决定居中方式
+                int recyclerViewWidth = rv.getWidth();
+                int itemWidth = getCurrentItemWidth();
+
+                // 计算实际显示的列数
+                int actualSpanCount = calculateOptimalSpanCount(orientation);
+                int contentWidth = itemWidth * actualSpanCount;
+                int totalPadding = recyclerViewWidth - contentWidth;
+                int sidePadding = Math.max(0, totalPadding / 2);
+                rv.setPadding(sidePadding, rv.getPaddingTop(), sidePadding, rv.getPaddingBottom());
+            }
         });
     }
 
@@ -1226,6 +1243,72 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
         rv.addOnChildAttachStateChangeListener(createChildAttachStateChangeListener(rv));
     }
 
+    private void applyFadingEffect(RecyclerView recyclerView) {
+        if (recyclerView == null || appGridAdapter == null) return;
+
+        int orientation = getResources().getConfiguration().orientation;
+        boolean isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE;
+
+        if (isLandscape) {
+            // 横屏模式：水平渐变效果
+            int viewWidth = recyclerView.getWidth();
+            if (viewWidth == 0) return;
+
+            float itemWidth = getCurrentItemWidth();
+
+            for (int i = 0; i < recyclerView.getChildCount(); i++) {
+                View child = recyclerView.getChildAt(i);
+                int position = recyclerView.getChildAdapterPosition(child);
+                if (position == RecyclerView.NO_POSITION) continue;
+
+                float childLeft = child.getLeft();
+                float childRight = child.getRight();
+                float alpha = 1.0f;
+
+                if (childRight < itemWidth) {
+                    // 左侧渐变：根据右边缘位置计算（线性）
+                    alpha = childRight / itemWidth;
+                } else if (childLeft > viewWidth - itemWidth) {
+                    // 右侧渐变：根据左边缘位置计算（线性）
+                    alpha = (viewWidth - childLeft) / itemWidth;
+                }
+
+                alpha = Math.max(MIN_ITEM_ALPHA, Math.min(1.0f, alpha));
+                child.setAlpha(alpha);
+            }
+        } else {
+            // 竖屏模式：垂直渐变效果
+            int viewHeight = recyclerView.getHeight();
+            if (viewHeight == 0) return;
+
+            float itemHeight = getCurrentItemHeight();
+
+            for (int i = 0; i < recyclerView.getChildCount(); i++) {
+                View child = recyclerView.getChildAt(i);
+                int position = recyclerView.getChildAdapterPosition(child);
+                if (position == RecyclerView.NO_POSITION) continue;
+
+                float childTop = child.getTop();
+                float childBottom = child.getBottom();
+                float alpha = 1.0f;
+
+                if (childBottom < itemHeight) {
+                    // 顶部渐变：根据底边缘位置计算（线性）
+                    alpha = childBottom / itemHeight;
+                } else if (childTop > viewHeight - itemHeight) {
+                    // 底部渐变：根据顶边缘位置计算（线性）
+                    alpha = (viewHeight - childTop) / itemHeight;
+                }
+
+                alpha = Math.max(MIN_ITEM_ALPHA, Math.min(1.0f, alpha));
+                child.setAlpha(alpha);
+            }
+        }
+    }
+
+    /**
+     * MODIFIED: Added a call to applyFadingEffect on scroll.
+     */
     private RecyclerView.OnScrollListener createScrollListener() {
         return new RecyclerView.OnScrollListener() {
             private long lastUpdateTime = 0;
@@ -1235,14 +1318,14 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
                 super.onScrollStateChanged(recyclerView, newState);
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                    if (selectionAnimator != null) {
-                        selectionAnimator.showIndicator();
+                    if (selectionAnimator != null && currentSelectionIndicator != null) {
+                        currentSelectionIndicator.setVisibility(View.VISIBLE);
                         updateSelectionPosition();
                     }
                 } else if (newState == RecyclerView.SCROLL_STATE_DRAGGING || 
                           newState == RecyclerView.SCROLL_STATE_SETTLING) {
-                    if (selectionAnimator != null) {
-                        selectionAnimator.hideIndicator();
+                    if (selectionAnimator != null && currentSelectionIndicator != null) {
+                        currentSelectionIndicator.setVisibility(View.INVISIBLE);
                     }
                 }
             }
@@ -1250,7 +1333,8 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
-                lastUpdateTime = System.currentTimeMillis();
+                // Apply the fading effect as the user scrolls
+                applyFadingEffect(recyclerView);
             }
         };
     }
@@ -1327,13 +1411,19 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
     }
 
     private void updateSelectionPosition() {
-        if (selectedPosition >= 0 && selectionAnimator != null) {
-            // 尝试更新到当前选中位置
-            boolean positionUpdated = selectionAnimator.updatePosition(selectedPosition);
-            
-            // 如果更新失败（item滑出屏幕外），隐藏焦点框
-            if (!positionUpdated) {
-                selectionAnimator.hideIndicator();
+        if (selectedPosition >= 0 && selectionAnimator != null && currentRecyclerView != null) {
+            RecyclerView.ViewHolder viewHolder = currentRecyclerView.findViewHolderForAdapterPosition(selectedPosition);
+            if (viewHolder != null) {
+                View selectionIndicator = viewHolder.itemView.findViewById(R.id.selectionIndicator);
+                if (selectionIndicator != null) {
+                    selectionAnimator.updatePosition(selectionIndicator);
+                    currentSelectionIndicator = selectionIndicator;
+                }
+            } else {
+                // 如果选中项滑出屏幕外，隐藏焦点框
+                if (currentSelectionIndicator != null) {
+                    currentSelectionIndicator.setVisibility(View.INVISIBLE);
+                }
             }
         }
     }

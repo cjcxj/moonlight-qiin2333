@@ -16,7 +16,7 @@
 
     <FrameLayout
         android:id="@+id/appFragmentContainer"
-        android:layout_width="fill_parent"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
         android:layout_alignParentLeft="true"
@@ -25,16 +25,6 @@
         android:layout_alignParentEnd="true"
         android:layout_centerVertical="true" />
     
-    <!-- 选中框动画View -->
-    <View
-        android:id="@+id/selectionIndicator"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@drawable/selection_indicator"
-        android:visibility="invisible"
-        android:elevation="8dp"
-        android:clipChildren="false"
-        android:clipToPadding="false"/>
     
     <TextView
         android:id="@+id/appListText"

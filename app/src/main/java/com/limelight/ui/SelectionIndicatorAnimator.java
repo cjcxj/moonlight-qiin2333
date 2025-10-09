@@ -7,6 +7,7 @@ import android.widget.RelativeLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.limelight.AppView;
+import com.limelight.R;
 import com.limelight.grid.GenericGridAdapter;
 
 /**
@@ -15,10 +16,8 @@ import com.limelight.grid.GenericGridAdapter;
  */
 public class SelectionIndicatorAnimator {
 
-    private View selectionIndicator;
     private RecyclerView recyclerView;
     private GenericGridAdapter<?> adapter;
-    private View rootView;
 
     // Animation configuration
     private static final int NORMAL_ANIMATION_DURATION = 200;
@@ -26,12 +25,7 @@ public class SelectionIndicatorAnimator {
     private static final int SCROLL_WAIT_DELAY = 50;
     private static final int RETRY_DELAY = 100;
 
-    public SelectionIndicatorAnimator(View selectionIndicator, RecyclerView recyclerView,
-                                      GenericGridAdapter<?> adapter, View rootView) {
-        this.selectionIndicator = selectionIndicator;
-        this.recyclerView = recyclerView;
-        this.adapter = adapter;
-        this.rootView = rootView;
+    public SelectionIndicatorAnimator() {
     }
 
     /**
@@ -45,10 +39,15 @@ public class SelectionIndicatorAnimator {
     /**
      * Move selection indicator to specified position
      *
-     * @param position     Target position
+     * @param selectionIndicator The selection indicator View for the current item.
      * @param isFirstFocus Whether this is the first focus (starting from position 0)
      */
-    public void moveToPosition(int position, boolean isFirstFocus) {
+    public void moveToPosition(View selectionIndicator, boolean isFirstFocus) {
+        if (selectionIndicator == null || recyclerView == null || adapter == null || positionProvider == null) {
+            return;
+        }
+
+        int position = positionProvider.getCurrentPosition();
         if (!isValidPosition(position)) {
             return;
         }
@@ -57,68 +56,71 @@ public class SelectionIndicatorAnimator {
         if (viewHolder != null) {
             if (isFirstFocus) {
                 // First focus, position directly without animation
-                setIndicatorPosition(viewHolder.itemView, false);
+                setIndicatorPosition(selectionIndicator, viewHolder.itemView, false);
             } else {
                 // Normal case: item is in visible area, use animation
-                animateToView(viewHolder.itemView);
+                animateToView(selectionIndicator, viewHolder.itemView);
             }
         } else {
             // Edge case: item is not in visible area, need to scroll
-            scrollToPositionAndAnimate(position);
+            scrollToPositionAndAnimate(selectionIndicator, position);
         }
     }
 
     /**
      * Move selection indicator to specified position (with animation by default)
      *
-     * @param position Target position
+     * @param selectionIndicator The selection indicator View for the current item.
      */
-    public void moveToPosition(int position) {
-        moveToPosition(position, false);
+    public void moveToPosition(View selectionIndicator) {
+        moveToPosition(selectionIndicator, false);
     }
 
     /**
      * Update selection indicator position (called during scrolling)
      *
-     * @param position Current selected position
-     * @return true if position was successfully updated, false if item is not visible
+     * @param selectionIndicator The selection indicator View for the current item.
      */
-    public boolean updatePosition(int position) {
+    public void updatePosition(View selectionIndicator) {
+        if (selectionIndicator == null || recyclerView == null || adapter == null || positionProvider == null) {
+            return;
+        }
+
+        int position = positionProvider.getCurrentPosition();
         if (!isValidPosition(position)) {
-            return false;
+            return;
         }
 
         RecyclerView.ViewHolder viewHolder = recyclerView.findViewHolderForAdapterPosition(position);
         if (viewHolder != null) {
-            setIndicatorPositionFast(viewHolder.itemView);
-            return true;
+            setIndicatorPositionFast(selectionIndicator, viewHolder.itemView);
         }
-        
-        // Item is not visible (scrolled out of screen)
-        return false;
     }
 
     /**
      * Fast set indicator position - dedicated for scroll updates, minimizing calculations
      *
+     * @param selectionIndicator The selection indicator View for the current item.
      * @param targetView Target View
      */
-    private void setIndicatorPositionFast(View targetView) {
-        // Use getLocationInWindow to get absolute position relative to window
-        int[] targetLocation = new int[2];
-        targetView.getLocationInWindow(targetLocation);
-        
-        // Get root layout position as reference point
-        int[] rootLocation = new int[2];
-        rootView.getLocationInWindow(rootLocation);
-        
-        // Calculate position relative to root layout
-        float targetX = targetLocation[0] - rootLocation[0];
-        float targetY = targetLocation[1] - rootLocation[1];
+    private void setIndicatorPositionFast(View selectionIndicator, View targetView) {
+        // Cache dimensions to avoid repeated settings
+        int targetWidth = targetView.getWidth();
+        int targetHeight = targetView.getHeight();
 
-        // Set position directly without complex size checks
-        selectionIndicator.setTranslationX(targetX);
-        selectionIndicator.setTranslationY(targetY);
+        int indicatorWidth = targetWidth;
+        int indicatorHeight = targetHeight;
+
+        // Only update LayoutParams when dimensions change
+        ViewGroup.LayoutParams params = selectionIndicator.getLayoutParams();
+        if (params.width != indicatorWidth || params.height != indicatorHeight) {
+            params.width = indicatorWidth;
+            params.height = indicatorHeight;
+            selectionIndicator.setLayoutParams(params);
+        }
+
+        selectionIndicator.setTranslationX(0);
+        selectionIndicator.setTranslationY(0);
         selectionIndicator.setVisibility(View.VISIBLE);
     }
 
@@ -126,8 +128,7 @@ public class SelectionIndicatorAnimator {
      * Check if position is valid
      */
     private boolean isValidPosition(int position) {
-        return selectionIndicator != null &&
-                recyclerView != null &&
+        return recyclerView != null &&
                 adapter != null &&
                 position >= 0 &&
                 position < adapter.getCount();
@@ -135,8 +136,10 @@ public class SelectionIndicatorAnimator {
 
     /**
      * Animate to specified View
+     * @param selectionIndicator The selection indicator View for the current item.
+     * @param targetView Target View
      */
-    private void animateToView(View targetView) {
+    private void animateToView(View selectionIndicator, View targetView) {
         // Check if another animation is in progress
         if (recyclerView.getScrollState() != RecyclerView.SCROLL_STATE_IDLE) {
             // If RecyclerView is scrolling, wait for scroll to complete
@@ -144,19 +147,24 @@ public class SelectionIndicatorAnimator {
                 // Recalculate position as scrolling may have changed it
                 RecyclerView.ViewHolder viewHolder = recyclerView.findViewHolderForAdapterPosition(getCurrentPosition());
                 if (viewHolder != null) {
-                    animateToView(viewHolder.itemView);
+                    View newSelectionIndicator = viewHolder.itemView.findViewById(R.id.selectionIndicator);
+                    if (newSelectionIndicator != null) {
+                        animateToView(newSelectionIndicator, viewHolder.itemView);
+                    }
                 }
             }, RETRY_DELAY);
         } else {
             // Smoothly move to new position
-            setIndicatorPosition(targetView, true);
+            setIndicatorPosition(selectionIndicator, targetView, true);
         }
     }
 
     /**
      * Scroll to specified position and execute animation
+     * @param selectionIndicator The selection indicator View for the current item.
+     * @param position Target position
      */
-    private void scrollToPositionAndAnimate(int position) {
+    private void scrollToPositionAndAnimate(View selectionIndicator, int position) {
         // Temporarily hide indicator to avoid showing wrong position during scroll
         selectionIndicator.setVisibility(View.INVISIBLE);
 
@@ -177,9 +185,12 @@ public class SelectionIndicatorAnimator {
                     recyclerView.postDelayed(() -> {
                         RecyclerView.ViewHolder viewHolder = recyclerView.findViewHolderForAdapterPosition(position);
                         if (viewHolder != null) {
-                            setIndicatorPosition(viewHolder.itemView, true);
-                            // Add scale emphasis effect
-                            addScaleAnimation();
+                            View newSelectionIndicator = viewHolder.itemView.findViewById(R.id.selectionIndicator);
+                            if (newSelectionIndicator != null) {
+                                setIndicatorPosition(newSelectionIndicator, viewHolder.itemView, true);
+                                // Add scale emphasis effect
+                                addScaleAnimation(newSelectionIndicator);
+                            }
                         }
                     }, SCROLL_WAIT_DELAY);
                 }
@@ -193,31 +204,23 @@ public class SelectionIndicatorAnimator {
     /**
      * Set indicator position
      *
+     * @param selectionIndicator The selection indicator View for the current item.
      * @param targetView    Target View
      * @param withAnimation Whether to use animation
      */
-    private void setIndicatorPosition(View targetView, boolean withAnimation) {
-        // Use getLocationInWindow to get absolute position relative to window
-        int[] targetLocation = new int[2];
-        targetView.getLocationInWindow(targetLocation);
-        
-        // Get root layout position as reference point
-        int[] rootLocation = new int[2];
-        rootView.getLocationInWindow(rootLocation);
-        
-        // Calculate position relative to root layout
-        float targetX = targetLocation[0] - rootLocation[0];
-        float targetY = targetLocation[1] - rootLocation[1];
-
+    private void setIndicatorPosition(View selectionIndicator, View targetView, boolean withAnimation) {
         // Cache dimensions to avoid repeated settings
         int targetWidth = targetView.getWidth();
         int targetHeight = targetView.getHeight();
 
+        int indicatorWidth = targetWidth;
+        int indicatorHeight = targetHeight;
+
         // Only update LayoutParams when dimensions change
         ViewGroup.LayoutParams params = selectionIndicator.getLayoutParams();
-        if (params.width != targetWidth || params.height != targetHeight) {
-            params.width = targetWidth;
-            params.height = targetHeight;
+        if (params.width != indicatorWidth || params.height != indicatorHeight) {
+            params.width = indicatorWidth;
+            params.height = indicatorHeight;
             selectionIndicator.setLayoutParams(params);
         }
 
@@ -227,22 +230,23 @@ public class SelectionIndicatorAnimator {
         if (withAnimation) {
             // Use faster animation method
             selectionIndicator.animate()
-                    .translationX(targetX)
-                    .translationY(targetY)
+                    .translationX(0) // [修改] X方向不偏移
+                    .translationY(0) // [修改] Y方向不偏移
                     .setDuration(Math.min(NORMAL_ANIMATION_DURATION, 120)) // Further reduce animation time
                     .setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f)) // Use faster interpolator
                     .start();
         } else {
             // Set position directly, use translationX/Y for better performance
-            selectionIndicator.setTranslationX(targetX);
-            selectionIndicator.setTranslationY(targetY);
+            selectionIndicator.setTranslationX(0);
+            selectionIndicator.setTranslationY(0);
         }
     }
 
     /**
      * Add scale emphasis animation
+     * @param selectionIndicator The selection indicator View for the current item.
      */
-    private void addScaleAnimation() {
+    private void addScaleAnimation(View selectionIndicator) {
         selectionIndicator.setScaleX(0.8f);
         selectionIndicator.setScaleY(0.8f);
         selectionIndicator.animate()
@@ -265,13 +269,6 @@ public class SelectionIndicatorAnimator {
         this.positionProvider = provider;
     }
 
-    public void hideIndicator() {
-        selectionIndicator.setVisibility(View.INVISIBLE);
-    }
-
-    public void showIndicator() {
-        selectionIndicator.setVisibility(View.VISIBLE);
-    }
 
     /**
      * Get current selected position

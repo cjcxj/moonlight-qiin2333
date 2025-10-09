@@ -190,6 +190,7 @@ public class AppGridAdapter extends GenericGridAdapter<AppView.AppObject> {
     @Override
     public void populateView(View parentView, ImageView imgView, View spinnerView, TextView txtView, ImageView overlayView, AppView.AppObject obj) {
         ImageView appBackgroundImage = getActivity(context).findViewById(R.id.appBackgroundImage);
+        View selectionIndicator = parentView.findViewById(R.id.selectionIndicator);
         
         // Let the cached asset loader handle it with callback
         loader.populateImageView(obj, imgView, txtView, false, () -> {
@@ -229,6 +230,15 @@ public class AppGridAdapter extends GenericGridAdapter<AppView.AppObject> {
         }
         else {
             parentView.setAlpha(1.0f);
+        }
+
+        // Handle selection indicator visibility
+        if (selectionIndicator != null) {
+            if (itemList.indexOf(obj) == selectedPosition) {
+                selectionIndicator.setVisibility(View.VISIBLE);
+            } else {
+                selectionIndicator.setVisibility(View.INVISIBLE);
+            }
         }
     }
     public static Activity getActivity(Context context) {
