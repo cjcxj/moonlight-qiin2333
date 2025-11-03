@@ -270,11 +270,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     public boolean isTouchOverrideEnabled = false;
-    public boolean getisTouchOverrideEnabled() {
+    public boolean isTouchOverrideEnabled() {
         return isTouchOverrideEnabled;
     }
-    public void setisTouchOverrideEnabled(boolean isTouchOverrideEnabled){
+    public void setTouchOverrideEnabled(boolean isTouchOverrideEnabled){
         this.isTouchOverrideEnabled = isTouchOverrideEnabled;
+    }
+
     }
 
     private boolean connectedToUsbDriverService = false;
