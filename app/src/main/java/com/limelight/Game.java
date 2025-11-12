@@ -1960,6 +1960,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         for (int i = 0; i < touchContextMap.length; i++) {
             if (enableRelativeTouch) {
                 prefConfig.touchscreenTrackpad = true;
+                prefConfig.enableNativeMousePointer = false;
                 touchContextMap = relativeTouchContextMap;
             }
             else {
@@ -1971,6 +1972,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     public void setEnhancedTouch(boolean enableRelativeTouch){
         prefConfig.enableEnhancedTouch = enableRelativeTouch;
+        if(prefConfig.enableEnhancedTouch){
+            prefConfig.enableNativeMousePointer = false;
+        }
+
     }
 
     @Override

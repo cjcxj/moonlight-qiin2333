@@ -574,4 +574,7 @@
     <string name="time_days_ago">%1$d天前</string>
     <string name="time_unknown">未知时间</string>
 
+    <string name="game_menu_toggle_remote_mouse">显示/隐藏远程鼠标</string>
+    <string name="toast_remote_mouse_toast">远程鼠标已显示/隐藏。</string>
+
 </resources>

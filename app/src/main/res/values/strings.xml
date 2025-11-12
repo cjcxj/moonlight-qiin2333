@@ -613,4 +613,7 @@
     <string name="time_days_ago">%1$d days ago</string>
     <string name="time_unknown">Unknown time</string>
 
+    <string name="game_menu_toggle_remote_mouse">Show/Hide Remote Mouse</string>
+    <string name="toast_remote_mouse_toast">Remote mouse displayed/hidden</string>
+
 </resources>
