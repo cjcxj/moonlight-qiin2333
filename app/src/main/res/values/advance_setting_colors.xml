@@ -47,4 +47,9 @@
 
     <!-- 主题蓝色 -->
     <color name="theme_blue_primary">#3CA4E0</color>
+    
+    <!-- 通用对话框颜色 -->
+    <color name="app_dialog_title_color">#2C2C2E</color>
+    <color name="app_dialog_subtitle_color">#48484A</color>
+    <color name="app_dialog_accent_color">#FF6B9D</color>
 </resources>

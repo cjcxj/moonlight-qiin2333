@@ -75,16 +75,26 @@ public class AdapterRecyclerBridge extends RecyclerView.Adapter<AdapterRecyclerB
             holder.container.setLayerType(View.LAYER_TYPE_HARDWARE, null);
             
             // 设置点击监听器（通过OnItemClickListener统一处理）
+            // 注意：使用 holder.getAdapterPosition() 而不是捕获 position 参数，以支持RecyclerView的回收机制
             holder.container.setOnClickListener(v -> {
                 if (onItemClickListener != null) {
-                    onItemClickListener.onItemClick(position, baseAdapter.getItem(position));
+                    int adapterPosition = holder.getAdapterPosition();
+                    if (adapterPosition != RecyclerView.NO_POSITION) {
+                        onItemClickListener.onItemClick(adapterPosition, baseAdapter.getItem(adapterPosition));
+                    }
                 }
             });
             
             // 设置按键监听器
             holder.container.setOnKeyListener((v, keyCode, event) -> {
+                // 获取当前adapter位置，而不是捕获的position
+                int adapterPosition = holder.getAdapterPosition();
+                if (adapterPosition == RecyclerView.NO_POSITION) {
+                    return false;
+                }
+                
                 if (onItemKeyListener != null) {
-                    return onItemKeyListener.onItemKey(position, baseAdapter.getItem(position), keyCode, event);
+                    return onItemKeyListener.onItemKey(adapterPosition, baseAdapter.getItem(adapterPosition), keyCode, event);
                 }
                 
                 // 适配器内部处理A键长按检测
@@ -95,9 +105,10 @@ public class AdapterRecyclerBridge extends RecyclerView.Adapter<AdapterRecyclerB
                         // A键按下 - 开始长按检测
                         aKeyDownTime = System.currentTimeMillis();
                         longPressRunnable = () -> {
-                            // 长按触发
-                            if (onItemLongClickListener != null) {
-                                onItemLongClickListener.onItemLongClick(position, baseAdapter.getItem(position));
+                            // 长按触发 - 再次获取当前位置
+                            int longPressPosition = holder.getAdapterPosition();
+                            if (longPressPosition != RecyclerView.NO_POSITION && onItemLongClickListener != null) {
+                                onItemLongClickListener.onItemLongClick(longPressPosition, baseAdapter.getItem(longPressPosition));
                             }
                         };
                         longPressHandler.postDelayed(longPressRunnable, LONG_PRESS_DURATION);
@@ -115,8 +126,8 @@ public class AdapterRecyclerBridge extends RecyclerView.Adapter<AdapterRecyclerB
                         
                         // 如果按下时间小于长按阈值，执行短按操作
                         if (pressDuration < LONG_PRESS_DURATION) {
-                            if (onItemClickListener != null) {
-                                onItemClickListener.onItemClick(position, baseAdapter.getItem(position));
+                            if (onItemClickListener != null && adapterPosition != RecyclerView.NO_POSITION) {
+                                onItemClickListener.onItemClick(adapterPosition, baseAdapter.getItem(adapterPosition));
                             }
                         }
                         return true;
@@ -129,8 +140,11 @@ public class AdapterRecyclerBridge extends RecyclerView.Adapter<AdapterRecyclerB
             // 设置长按监听器
             holder.container.setOnLongClickListener(v -> {
                 if (onItemLongClickListener != null) {
-                    boolean result = onItemLongClickListener.onItemLongClick(position, baseAdapter.getItem(position));
-                    return result;
+                    int adapterPosition = holder.getAdapterPosition();
+                    if (adapterPosition != RecyclerView.NO_POSITION) {
+                        boolean result = onItemLongClickListener.onItemLongClick(adapterPosition, baseAdapter.getItem(adapterPosition));
+                        return result;
+                    }
                 }
                 return false;
             });

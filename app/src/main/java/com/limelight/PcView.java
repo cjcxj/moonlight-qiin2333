@@ -229,7 +229,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
                     saveImage();
                 } else {
                     // 请求权限
-                    Toast.makeText(this, "需要存储权限才能保存图片，请在设置中授予权限", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, getResources().getString(R.string.storage_permission_required), Toast.LENGTH_LONG).show();
                     try {
                         Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                         intent.setData(Uri.parse("package:" + getPackageName()));
@@ -321,7 +321,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
             // 如果缓存中没有，尝试从ImageView获取
             ImageView imageView = findViewById(R.id.pcBackgroundImage);
             if (imageView != null && imageView.getDrawable() != null) {
-                Toast.makeText(this, "正在重新下载图片，请稍候...", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getResources().getString(R.string.downloading_image_please_wait), Toast.LENGTH_SHORT).show();
                 
                 // 在后台线程重新下载原图
                 new Thread(() -> {
@@ -339,16 +339,16 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
                             // 保存图片
                             runOnUiThread(() -> saveBitmapToFile(downloadedBitmap));
                         } else {
-                            runOnUiThread(() -> Toast.makeText(PcView.this, "图片下载失败，请重试", Toast.LENGTH_SHORT).show());
+                            runOnUiThread(() -> Toast.makeText(PcView.this, getResources().getString(R.string.image_download_failed_retry), Toast.LENGTH_SHORT).show());
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
-                        runOnUiThread(() -> Toast.makeText(PcView.this, "图片下载失败: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                        runOnUiThread(() -> Toast.makeText(PcView.this, getResources().getString(R.string.image_download_failed_with_error, e.getMessage()), Toast.LENGTH_SHORT).show());
                     }
                 }).start();
                 return;
             } else {
-                Toast.makeText(this, "图片未加载，请稍后再试", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getResources().getString(R.string.image_not_loaded_please_retry), Toast.LENGTH_SHORT).show();
                 return;
             }
         }
@@ -359,7 +359,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
     
     private void saveBitmapToFile(Bitmap bitmap) {
         if (bitmap == null) {
-            Toast.makeText(this, "图片无效", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getResources().getString(R.string.image_invalid), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -378,10 +378,10 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
             outputStream.flush();
             outputStream.close();
             refreshSystemPic(PcView.this, file);
-            Toast.makeText(this, "涩图成功保存到了系统目录(Picture/setu)", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getResources().getString(R.string.image_saved_successfully), Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(this, "涩图保存失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getResources().getString(R.string.image_save_failed_with_error, e.getMessage()), Toast.LENGTH_SHORT).show();
         }
         // 不再清空所有缓存，只移除当前图片（可选）
         // bitmapLruCache.remove(getBackgroundImageUrl());
@@ -478,7 +478,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
         }
     }
 
-    @SuppressLint("DefaultLocale")
+    @SuppressLint({"DefaultLocale", "StringFormatMatches"})
     private void applySceneConfiguration(int sceneNumber) {
         try {
             SharedPreferences prefs = getSharedPreferences(SCENE_PREF_NAME, MODE_PRIVATE);
@@ -507,28 +507,28 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
                 
                 // 保存并检查结果
                 if (!configPrefs.writePreferences(this)) {
-                    Toast.makeText(this, "配置保存失败", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getResources().getString(R.string.config_save_failed), Toast.LENGTH_SHORT).show();
                     return;
                 }
                 
                 pcGridAdapter.updateLayoutWithPreferences(this, configPrefs);
                 
-                Toast.makeText(this, String.format("已应用场景%d配置：%dx%d@%dFPS %.2fMbps %s HDR %s",
+                Toast.makeText(this, getResources().getString(R.string.scene_config_applied,
                     sceneNumber, width, height, fps, bitrate / 1000.0, videoFormat, enableHdr ? "On" : "Off"), Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(this, "场景"+sceneNumber+"未配置", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getResources().getString(R.string.scene_not_configured, sceneNumber), Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
-            runOnUiThread(() -> Toast.makeText(PcView.this, "配置应用失败", Toast.LENGTH_SHORT).show());
+            runOnUiThread(() -> Toast.makeText(PcView.this, getResources().getString(R.string.config_apply_failed), Toast.LENGTH_SHORT).show());
         }
     }
 
     private void showSaveConfirmationDialog(int sceneNumber) {
         new AlertDialog.Builder(this, R.style.AppDialogStyle)
-            .setTitle("保存到场景" + sceneNumber)
-            .setMessage("是否覆盖当前配置？")
-            .setPositiveButton("保存", (dialog, which) -> saveCurrentConfiguration(sceneNumber))
-            .setNegativeButton("取消", null)
+            .setTitle(getResources().getString(R.string.save_to_scene, sceneNumber))
+            .setMessage(getResources().getString(R.string.overwrite_current_config))
+            .setPositiveButton(getResources().getString(R.string.dialog_button_save), (dialog, which) -> saveCurrentConfiguration(sceneNumber))
+            .setNegativeButton(getResources().getString(R.string.dialog_button_cancel), null)
             .show();
     }
 
@@ -550,9 +550,9 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
                 .putString(SCENE_KEY_PREFIX + sceneNumber, config.toString())
                 .apply();
             
-            Toast.makeText(this, "场景" + sceneNumber + "保存成功", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getResources().getString(R.string.scene_saved_successfully, sceneNumber), Toast.LENGTH_SHORT).show();
         } catch (JSONException e) {
-            Toast.makeText(this, "配置保存失败", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getResources().getString(R.string.config_save_failed), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -755,11 +755,11 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
             }
 
             menu.add(Menu.NONE, FULL_APP_LIST_ID, 4, getResources().getString(R.string.pcview_menu_app_list));
-            menu.add(Menu.NONE, SLEEP_ID, 8, "发送睡眠指令");
+            menu.add(Menu.NONE, SLEEP_ID, 8, getResources().getString(R.string.send_sleep_command));
         }
 
         menu.add(Menu.NONE, TEST_NETWORK_ID, 5, getResources().getString(R.string.pcview_menu_test_network));
-        menu.add(Menu.NONE, IPERF3_TEST_ID, 6, "网络带宽测试 (iPerf3)");
+        menu.add(Menu.NONE, IPERF3_TEST_ID, 6, getResources().getString(R.string.network_bandwidth_test));
         menu.add(Menu.NONE, DELETE_ID, 6, getResources().getString(R.string.pcview_menu_delete_pc));
         menu.add(Menu.NONE, VIEW_DETAILS_ID, 7,  getResources().getString(R.string.pcview_menu_details));
     }
@@ -936,7 +936,8 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
                 message = e.getMessage();
                 e.printStackTrace();
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                // Thread was interrupted during unpair
+                message = getResources().getString(R.string.error_interrupted);
             }
 
             final String toastMessage = message;
@@ -1089,7 +1090,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
                 } catch (IOException e) {
                     // 捕获因 activeAddress 为 null 导致的异常
                     e.printStackTrace();
-                    Toast.makeText(this, "无法获取PC地址: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, getResources().getString(R.string.unable_to_get_pc_address, e.getMessage()), Toast.LENGTH_LONG).show();
                 }
                 return true;
 
@@ -1104,7 +1105,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
     
     /**
      * 一键恢复上一次会话
-     * 默认选择第一个在线且有运行游戏的主机
+     * 持续查找主机直到找到有运行游戏的主机为止
      */
     private void restoreLastSession() {
         if (managerBinder == null) {
@@ -1112,36 +1113,32 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
             return;
         }
 
-        // 查找第一个在线的主机
-        ComputerDetails onlineComputer = null;
+        // 持续查找有运行游戏的在线主机
+        ComputerDetails targetComputer = null;
         for (int i = 0; i < pcGridAdapter.getCount(); i++) {
             ComputerObject computer = (ComputerObject) pcGridAdapter.getItem(i);
             if (computer.details.state == ComputerDetails.State.ONLINE && 
-                computer.details.pairState == PairState.PAIRED) {
-                onlineComputer = computer.details;
-                break;
+                computer.details.pairState == PairState.PAIRED &&
+                computer.details.runningGameId != 0) {
+                targetComputer = computer.details;
+                break; // 找到有运行游戏的主机就停止查找
             }
         }
 
-        if (onlineComputer == null) {
-            Toast.makeText(this, "no online computer", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (onlineComputer.runningGameId == 0) {
-            Toast.makeText(this, "Host " + onlineComputer.name + " has no running game", Toast.LENGTH_SHORT).show();
+        if (targetComputer == null) {
+            Toast.makeText(this, getResources().getString(R.string.no_online_computer_with_running_game), Toast.LENGTH_SHORT).show();
             return;
         }
 
         // 恢复会话
-        NvApp actualApp = getNvAppById(onlineComputer.runningGameId, onlineComputer.uuid);
+        NvApp actualApp = getNvAppById(targetComputer.runningGameId, targetComputer.uuid);
         if (actualApp != null) {
-            Toast.makeText(this, "Restoring session: " + onlineComputer.name, Toast.LENGTH_SHORT).show();
-            ServerHelper.doStart(this, actualApp, onlineComputer, managerBinder);
+            Toast.makeText(this, getResources().getString(R.string.restoring_session, targetComputer.name), Toast.LENGTH_SHORT).show();
+            ServerHelper.doStart(this, actualApp, targetComputer, managerBinder);
         } else {
             // 使用基本的NvApp对象作为备用
-            Toast.makeText(this, "Restoring session: " + onlineComputer.name, Toast.LENGTH_SHORT).show();
-            ServerHelper.doStart(this, new NvApp("app", onlineComputer.runningGameId, false), onlineComputer, managerBinder);
+            Toast.makeText(this, getResources().getString(R.string.restoring_session, targetComputer.name), Toast.LENGTH_SHORT).show();
+            ServerHelper.doStart(this, new NvApp("app", targetComputer.runningGameId, false), targetComputer, managerBinder);
         }
     }
 
@@ -1304,7 +1301,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
         if (currentTime - lastShakeTime < SHAKE_DEBOUNCE_INTERVAL) {
             long remainingSeconds = (SHAKE_DEBOUNCE_INTERVAL - (currentTime - lastShakeTime)) / 1000;
             runOnUiThread(() -> 
-                Toast.makeText(PcView.this, "Please wait " + remainingSeconds + "s", Toast.LENGTH_SHORT).show()
+                Toast.makeText(PcView.this, getResources().getString(R.string.please_wait_seconds, remainingSeconds), Toast.LENGTH_SHORT).show()
             );
             return;
         }
@@ -1312,7 +1309,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
         // Check daily limit
         if (!canRefreshToday()) {
             runOnUiThread(() -> 
-                Toast.makeText(PcView.this, "Daily limit reached (5/5). Try again tomorrow!", Toast.LENGTH_LONG).show()
+                Toast.makeText(PcView.this, getResources().getString(R.string.daily_limit_reached), Toast.LENGTH_LONG).show()
             );
             return;
         }
@@ -1324,7 +1321,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
         int remaining = getRemainingRefreshCount();
         
         runOnUiThread(() -> {
-            String message = "Refreshing... (" + remaining + " left today)";
+            String message = getResources().getString(R.string.refreshing_with_remaining, remaining);
             Toast.makeText(PcView.this, message, Toast.LENGTH_SHORT).show();
             refreshBackgroundImage();
         });
@@ -1429,15 +1426,15 @@ public class PcView extends Activity implements AdapterFragmentCallbacks, ShakeD
                                 .transform(new ColorFilterTransformation(Color.argb(120, 0, 0, 0)))
                                 .into(imageView);
                         int remaining = getRemainingRefreshCount();
-                        String message = "Background refreshed! (" + remaining + " left today)";
+                        String message = getResources().getString(R.string.background_refreshed_with_remaining, remaining);
                         Toast.makeText(PcView.this, message, Toast.LENGTH_SHORT).show();
                     });
                 } else {
-                    runOnUiThread(() -> Toast.makeText(PcView.this, "Refresh failed, please retry", Toast.LENGTH_SHORT).show());
+                    runOnUiThread(() -> Toast.makeText(PcView.this, getResources().getString(R.string.refresh_failed_please_retry), Toast.LENGTH_SHORT).show());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(PcView.this, "Refresh failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(PcView.this, getResources().getString(R.string.refresh_failed_with_error, e.getMessage()), Toast.LENGTH_SHORT).show());
             }
         }).start();
     }

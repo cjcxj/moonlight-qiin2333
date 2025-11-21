@@ -34,15 +34,38 @@ public class UiHelper {
     private static final int TV_VERTICAL_PADDING_DP = 15;
     private static final int TV_HORIZONTAL_PADDING_DP = 15;
 
+    private static Boolean sGameManagerAvailable = null;
+
+    private static boolean isGameManagerAvailable(Context context) {
+        if (sGameManagerAvailable != null) {
+            return sGameManagerAvailable;
+        }
+        try {
+            GameManager gameManager = context.getSystemService(GameManager.class);
+            sGameManagerAvailable = (gameManager != null);
+        } catch (Exception e) {
+            sGameManagerAvailable = false;
+        }
+        return sGameManagerAvailable;
+    }
+
     private static void setGameModeStatus(Context context, boolean streaming, boolean interruptible) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            GameManager gameManager = context.getSystemService(GameManager.class);
-
-            if (streaming) {
-                gameManager.setGameState(new GameState(false, interruptible ? GameState.MODE_GAMEPLAY_INTERRUPTIBLE : GameState.MODE_GAMEPLAY_UNINTERRUPTIBLE));
+            if (!isGameManagerAvailable(context)) {
+                return;
             }
-            else {
-                gameManager.setGameState(new GameState(false, GameState.MODE_NONE));
+
+            try {
+                GameManager gameManager = context.getSystemService(GameManager.class);
+
+                if (streaming) {
+                    gameManager.setGameState(new GameState(false, interruptible ? GameState.MODE_GAMEPLAY_INTERRUPTIBLE : GameState.MODE_GAMEPLAY_UNINTERRUPTIBLE));
+                }
+                else {
+                    gameManager.setGameState(new GameState(false, GameState.MODE_NONE));
+                }
+            } catch (Exception e) {
+                sGameManagerAvailable = false;
             }
         }
     }

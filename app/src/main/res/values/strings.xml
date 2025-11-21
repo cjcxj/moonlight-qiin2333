@@ -70,6 +70,7 @@
     <string name="error_404">GFE returned an HTTP 404 error. Make sure your PC is running a supported GPU.
 	    Using remote desktop software can also cause this error. Try rebooting your machine or reinstalling GFE.
     </string>
+    <string name="error_interrupted">The operation was interrupted</string>
     <string name="title_decoding_error">Video Decoder Crashed</string>
     <string name="message_decoding_error">Moonlight has crashed due to an incompatibility with this device\'s video decoder. Try adjusting the streaming settings if the crashes continue.</string>
     <string name="title_decoding_reset">Video Settings Reset</string>
@@ -149,9 +150,6 @@
     <!-- In Game menu -->
     <string name="game_menu_toggle_keyboard">Toggle On-screen Keyboard</string>
     <string name="game_menu_toggle_performance_overlay">Toggle Performance Overlay</string>
-    <string name="perf_overlay_hidden">CLOSE</string>
-    <string name="perf_overlay_floating">SUSPENSION</string>
-    <string name="perf_overlay_locked">Fixed</string>
     <string name="game_menu_toggle_virtual_controller">Toggle Virtual Controller</string>
     <string name="game_menu_toggle_host_keyboard">Toggle Host Keyboard</string>
     <string name="game_menu_toggle_all_keyboard">Toggle PC Keyboard</string>
@@ -325,6 +323,8 @@
     <string name="category_ui_settings">🎨 UI Settings</string>
     <string name="title_checkbox_enable_pip">Enable Picture-in-Picture observer mode</string>
     <string name="summary_checkbox_enable_pip">Allows the stream to be viewed (but not controlled) while multitasking</string>
+    <string name="title_checkbox_enable_background_audio">Background Audio Mode</string>
+    <string name="summary_checkbox_enable_background_audio">Hide the entire window and play audio in background, allowing you to use other apps while listening</string>
     <string name="title_language_list">Language</string>
     <string name="summary_language_list">Language to use for Moonlight</string>
     <string name="title_checkbox_small_icon_mode">Use small box art</string>
@@ -362,7 +362,9 @@
     <string name="title_enable_post_stream_toast">Show latency message after streaming</string>
     <string name="summary_enable_post_stream_toast">Display a latency information message after the stream ends</string>
     <string name="title_checkbox_lock_screen_after_disconnect">Lock screen when disconnecting and exiting the stream</string>
-    <string name="summary_checkbox_lock_screen_after_disconnect">Automatically lock the device screen after disconnecting and exiting the stream</string>
+    <string name="summary_checkbox_lock_screen_after_disconnect">Automatically lock the device screen after disconnecting and exiting the stream (you need to manually turn on the on-screen keyboard, which is the host keyboard in the menu)</string>
+    <string name="title_checkbox_swap_quit_and_disconnect">Toggle “Quit” Button Function</string>
+    <string name="summary_checkbox_swap_quit_and_disconnect">When enabled, the “Quit” button will disconnect without closing the app</string>
     <string name="mic_stats_continuity">Audio continuity: %.1f%% (Captured:%d Encoded:%d Sent:%d Dropped:%d)</string>
 
     <string name="category_help">❓ Help</string>
@@ -433,7 +435,7 @@
     <string name="mic_permission_required">Microphone permission required</string>
     
     <!-- Screen position settings -->
-    <string name="category_screen_position_settings">📱 Screen Position Settings</string>
+    <string name="category_screen_position_settings">📱 Screen Settings</string>
     <string name="title_screen_position">Screen Position</string>
     <string name="summary_screen_position">Choose the position of the screen when using non-fullscreen resolution</string>
     <string name="title_screen_offset_x">Horizontal Offset</string>
@@ -442,7 +444,7 @@
     <string name="summary_screen_offset_y">Vertical offset of the screen</string>
     
     <!-- Crown feature area -->
-    <string name="category_crown_features">Crown Feature Area</string>
+    <string name="category_crown_features">👑 Crown Feature Area</string>
     <string name="title_crown_super_features">Crown Super Features</string>
     <string name="summary_crown_super_features">Custom buttons and settings during streaming, saved to custom configurations for quick switching</string>
     <string name="title_export_super_config">Export Configuration</string>
@@ -615,6 +617,34 @@
     <string name="time_hours_ago">%1$d hours ago</string>
     <string name="time_days_ago">%1$d days ago</string>
     <string name="time_unknown">Unknown time</string>
+
+    <!-- PcView hardcoded strings -->
+    <string name="storage_permission_required">Storage permission required to save images, please grant permission in settings</string>
+    <string name="downloading_image_please_wait">Re-downloading image, please wait...</string>
+    <string name="image_download_failed_retry">Image download failed, please retry</string>
+    <string name="image_download_failed_with_error">Image download failed: %1$s</string>
+    <string name="image_not_loaded_please_retry">Image not loaded, please try again later</string>
+    <string name="image_invalid">Invalid image</string>
+    <string name="image_saved_successfully">Image successfully saved to system directory (Picture/setu)</string>
+    <string name="image_save_failed_with_error">Image save failed: %1$s</string>
+    <string name="config_save_failed">Configuration save failed</string>
+    <string name="scene_config_applied">Applied scene %1$d configuration: %2$dx%3$d@%4$dFPS %.2fMbps %5$s HDR %6$s</string>
+    <string name="scene_not_configured">Scene %1$d not configured</string>
+    <string name="config_apply_failed">Configuration apply failed</string>
+    <string name="save_to_scene">Save to Scene %1$d</string>
+    <string name="overwrite_current_config">Overwrite current configuration?</string>
+    <string name="scene_saved_successfully">Scene %1$d saved successfully</string>
+    <string name="unable_to_get_pc_address">Unable to get PC address: %1$s</string>
+    <string name="send_sleep_command">Send Sleep Command</string>
+    <string name="network_bandwidth_test">Network Bandwidth Test (iPerf3)</string>
+    <string name="no_online_computer_with_running_game">No online computer with running game found</string>
+    <string name="restoring_session">Restoring session: %1$s</string>
+    <string name="please_wait_seconds">Please wait %1$ds</string>
+    <string name="daily_limit_reached">Daily limit reached (5/5). Try again tomorrow!</string>
+    <string name="refreshing_with_remaining">Refreshing... (%1$d left today)</string>
+    <string name="background_refreshed_with_remaining">Background refreshed! (%1$d left today)</string>
+    <string name="refresh_failed_please_retry">Refresh failed, please retry</string>
+    <string name="refresh_failed_with_error">Refresh failed: %1$s</string>
 
     <string name="game_menu_toggle_remote_mouse">Show/Hide Remote Mouse</string>
     <string name="toast_remote_mouse_toast">Remote mouse displayed/hidden</string>

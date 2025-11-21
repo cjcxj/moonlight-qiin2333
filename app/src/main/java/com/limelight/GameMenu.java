@@ -976,7 +976,14 @@ public class GameMenu {
             handler.postDelayed(() -> sendKeys(new short[]{85, 83}), SLEEP_DELAY);
         });
 
-        setupButtonWithAnimation(customView.findViewById(R.id.btnQuit), scaleDown, scaleUp, v -> disconnectAndQuit());
+        setupButtonWithAnimation(customView.findViewById(R.id.btnQuit), scaleDown, scaleUp, v -> {
+            if (game.prefConfig.swapQuitAndDisconnect) {
+                game.disconnect();
+            }
+            else {
+                disconnectAndQuit();
+            }
+        });
     }
 
     /**

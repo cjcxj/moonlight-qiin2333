@@ -196,16 +196,19 @@
 
     <!-- 通用弹窗样式 -->
     <style name="AppDialogStyle" parent="Theme.AppCompat.Light.Dialog.Alert">
-        <item name="android:windowBackground">@drawable/game_menu_dialog_bg</item>
+        <item name="android:windowBackground">@drawable/app_dialog_bg_cute</item>
         <item name="android:windowMinWidthMajor">60%</item>
         <item name="android:windowMinWidthMinor">80%</item>
         <item name="android:windowIsFloating">true</item>
         <item name="android:windowAnimationStyle">@style/AppDialogAnimation</item>
         <item name="android:windowSoftInputMode">adjustResize</item>
-        <item name="android:textColorPrimary">@color/theme_pink_primary</item>
-        <item name="android:textColorSecondary">@color/game_menu_text_secondary</item>
-        <item name="android:colorAccent">@color/theme_pink_primary</item>
-        <item name="android:listDivider">@color/theme_pink_primary</item>
+        <!-- 专业标题颜色设置 -->
+        <item name="android:textColorPrimary">@color/app_dialog_title_color</item>
+        <item name="android:textColorSecondary">@color/app_dialog_subtitle_color</item>
+        <item name="android:colorAccent">@color/app_dialog_accent_color</item>
+        <item name="android:listDivider">@color/app_dialog_accent_color</item>
+        <!-- 标题样式 -->
+        <item name="android:windowTitleStyle">@style/AppDialogTitleStyle</item>
     </style>
 
     <!-- 通用弹窗动画 -->
@@ -214,10 +217,20 @@
         <item name="android:windowExitAnimation">@anim/game_menu_dialog_exit</item>
     </style>
 
+    <!-- 通用对话框标题样式 -->
+    <style name="AppDialogTitleStyle" parent="@style/RtlOverlay.DialogWindowTitle.AppCompat">
+        <item name="android:textColor">@color/app_dialog_title_color</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingTop">16dp</item>
+        <item name="android:paddingBottom">8dp</item>
+    </style>
+
     <!-- 通用按钮样式 -->
     <style name="AppDialogButtonStyle" parent="android:Widget.Button">
         <item name="android:background">@drawable/game_menu_button_bg</item>
-        <item name="android:textColor">@android:color/black</item>
+        <item name="android:textColor">@color/app_dialog_title_color</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:paddingLeft">12dp</item>

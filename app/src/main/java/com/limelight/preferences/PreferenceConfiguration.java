@@ -78,6 +78,7 @@ public class PreferenceConfiguration {
     private static final String ONSCREEN_KEYBOARD_PREF_STRING = "checkbox_show_onscreen_keyboard";
     private static final String ONLY_L3_R3_PREF_STRING = "checkbox_only_show_L3R3";
     private static final String SHOW_GUIDE_BUTTON_PREF_STRING = "checkbox_show_guide_button";
+    private static final String HALF_HEIGHT_OSC_PORTRAIT_PREF_STRING = "checkbox_half_height_osc_portrait";
     private static final String LEGACY_DISABLE_FRAME_DROP_PREF_STRING = "checkbox_disable_frame_drop";
     private static final String ENABLE_HDR_PREF_STRING = "checkbox_enable_hdr";
     private static final String ENABLE_PIP_PREF_STRING = "checkbox_enable_pip";
@@ -96,7 +97,9 @@ public class PreferenceConfiguration {
     private static final String FLIP_FACE_BUTTONS_PREF_STRING = "checkbox_flip_face_buttons";
     private static final String TOUCHSCREEN_TRACKPAD_PREF_STRING = "checkbox_touchscreen_trackpad";
     private static final String LATENCY_TOAST_PREF_STRING = "checkbox_enable_post_stream_toast";
+    private static final String ENABLE_STUN_PREF_STRING = "checkbox_enable_stun";
     private static final String LOCK_SCREEN_AFTER_DISCONNECT_PREF_STRING = "checkbox_lock_screen_after_disconnect";
+    private static final String SWAP_QUIT_AND_DISCONNECT_PERF_STRING = "checkbox_swap_quit_and_disconnect";
     private static final String FRAME_PACING_PREF_STRING = "frame_pacing";
     private static final String ABSOLUTE_MOUSE_MODE_PREF_STRING = "checkbox_absolute_mouse_mode";
     private static final String ENABLE_NATIVE_MOUSE_POINTER_PREF_STRING = "checkbox_enable_native_mouse_pointer";
@@ -153,6 +156,7 @@ public class PreferenceConfiguration {
     private static final boolean ONSCREEN_KEYBOARD_DEFAULT = false;
     private static final boolean ONLY_L3_R3_DEFAULT = false;
     private static final boolean SHOW_GUIDE_BUTTON_DEFAULT = true;
+    private static final boolean HALF_HEIGHT_OSC_PORTRAIT_DEFAULT = true;
     private static final boolean DEFAULT_ENABLE_HDR = false;
     private static final boolean DEFAULT_ENABLE_PIP = false;
     private static final boolean DEFAULT_ENABLE_PERF_OVERLAY = false;
@@ -171,6 +175,7 @@ public class PreferenceConfiguration {
     private static final boolean DEFAULT_TOUCHSCREEN_TRACKPAD = true;
     private static final String DEFAULT_AUDIO_CONFIG = "2"; // Stereo
     private static final boolean DEFAULT_LATENCY_TOAST = false;
+    private static final boolean DEFAULT_ENABLE_STUN = false;
     private static final String DEFAULT_FRAME_PACING = "latency";
     private static final boolean DEFAULT_ABSOLUTE_MOUSE_MODE = false;
     private static final boolean DEFAULT_ENABLE_NATIVE_MOUSE_POINTER = false;
@@ -222,6 +227,9 @@ public class PreferenceConfiguration {
     private static final String REVERSE_RESOLUTION_PREF_STRING = "checkbox_reverse_resolution";
     private static final boolean DEFAULT_REVERSE_RESOLUTION = false;
 
+    private static final String ROTABLE_SCREEN_PREF_STRING = "checkbox_rotable_screen";
+    private static final boolean DEFAULT_ROTABLE_SCREEN = false;
+
     // 画面位置常量
     private static final String SCREEN_POSITION_PREF_STRING = "list_screen_position";
     private static final String SCREEN_OFFSET_X_PREF_STRING = "seekbar_screen_offset_x";
@@ -268,6 +276,7 @@ public class PreferenceConfiguration {
     public boolean onscreenKeyboard;
     public boolean onlyL3R3;
     public boolean showGuideButton;
+    public boolean halfHeightOscPortrait;
     public boolean enableHdr;
     public boolean enablePip;
     public boolean enablePerfOverlay;
@@ -276,7 +285,9 @@ public class PreferenceConfiguration {
     public PerfOverlayPosition perfOverlayPosition;
     public boolean enableSimplifyPerfOverlay;
     public boolean enableLatencyToast;
+    public boolean enableStun;
     public boolean lockScreenAfterDisconnect;
+    public boolean swapQuitAndDisconnect;
     public boolean bindAllUsb;
     public boolean mouseEmulation;
     public AnalogStickForScrolling analogStickForScrolling;
@@ -298,6 +309,7 @@ public class PreferenceConfiguration {
     public boolean gamepadTouchpadAsMouse;
     public boolean gamepadMotionSensorsFallbackToDevice;
     public boolean reverseResolution;
+    public boolean rotableScreen;
     // Runtime-only: enable mapping gyroscope motion to right analog stick
     public boolean gyroToRightStick;
     // Runtime-only: sensitivity in deg/s for full stick deflection
@@ -734,6 +746,7 @@ public class PreferenceConfiguration {
         config.onscreenKeyboard = prefs.getBoolean(ONSCREEN_KEYBOARD_PREF_STRING, ONSCREEN_KEYBOARD_DEFAULT);
         config.onlyL3R3 = prefs.getBoolean(ONLY_L3_R3_PREF_STRING, ONLY_L3_R3_DEFAULT);
         config.showGuideButton = prefs.getBoolean(SHOW_GUIDE_BUTTON_PREF_STRING, SHOW_GUIDE_BUTTON_DEFAULT);
+        config.halfHeightOscPortrait = prefs.getBoolean(HALF_HEIGHT_OSC_PORTRAIT_PREF_STRING, HALF_HEIGHT_OSC_PORTRAIT_DEFAULT);
         config.enableHdr = prefs.getBoolean(ENABLE_HDR_PREF_STRING, DEFAULT_ENABLE_HDR) && !isShieldAtvFirmwareWithBrokenHdr();
         config.enablePip = prefs.getBoolean(ENABLE_PIP_PREF_STRING, DEFAULT_ENABLE_PIP);
         config.enablePerfOverlay = prefs.getBoolean(ENABLE_PERF_OVERLAY_STRING, DEFAULT_ENABLE_PERF_OVERLAY);
@@ -779,7 +792,9 @@ public class PreferenceConfiguration {
         config.flipFaceButtons = prefs.getBoolean(FLIP_FACE_BUTTONS_PREF_STRING, DEFAULT_FLIP_FACE_BUTTONS);
         config.touchscreenTrackpad = prefs.getBoolean(TOUCHSCREEN_TRACKPAD_PREF_STRING, DEFAULT_TOUCHSCREEN_TRACKPAD);
         config.enableLatencyToast = prefs.getBoolean(LATENCY_TOAST_PREF_STRING, DEFAULT_LATENCY_TOAST);
+        config.enableStun = prefs.getBoolean(ENABLE_STUN_PREF_STRING, DEFAULT_ENABLE_STUN);
         config.lockScreenAfterDisconnect = prefs.getBoolean(LOCK_SCREEN_AFTER_DISCONNECT_PREF_STRING, DEFAULT_LATENCY_TOAST);
+        config.swapQuitAndDisconnect = prefs.getBoolean(SWAP_QUIT_AND_DISCONNECT_PERF_STRING, DEFAULT_LATENCY_TOAST);
         config.absoluteMouseMode = prefs.getBoolean(ABSOLUTE_MOUSE_MODE_PREF_STRING, DEFAULT_ABSOLUTE_MOUSE_MODE);
         config.enableNativeMousePointer = prefs.getBoolean(ENABLE_NATIVE_MOUSE_POINTER_PREF_STRING, DEFAULT_ENABLE_NATIVE_MOUSE_POINTER);
         config.enableAudioFx = prefs.getBoolean(ENABLE_AUDIO_FX_PREF_STRING, DEFAULT_ENABLE_AUDIO_FX);
@@ -809,6 +824,7 @@ public class PreferenceConfiguration {
         config.enableEscMenu = prefs.getBoolean(ENABLE_ESC_MENU_PREF_STRING, DEFAULT_ENABLE_ESC_MENU);
 
         config.reverseResolution = prefs.getBoolean(REVERSE_RESOLUTION_PREF_STRING, DEFAULT_REVERSE_RESOLUTION);
+        config.rotableScreen = prefs.getBoolean(ROTABLE_SCREEN_PREF_STRING, DEFAULT_ROTABLE_SCREEN);
 
         // 如果启用了分辨率反转，则交换宽度和高度
         if (config.reverseResolution) {
@@ -920,6 +936,7 @@ public class PreferenceConfiguration {
                     .putBoolean(ENABLE_PERF_OVERLAY_STRING, enablePerfOverlay)
                     .putBoolean(PERF_OVERLAY_LOCKED_STRING, perfOverlayLocked)
                     .putBoolean(REVERSE_RESOLUTION_PREF_STRING, reverseResolution)
+                    .putBoolean(ROTABLE_SCREEN_PREF_STRING, rotableScreen)
                     .putBoolean(SHOW_BITRATE_CARD_PREF_STRING, showBitrateCard)
                     .putBoolean(SHOW_GYRO_CARD_PREF_STRING, showGyroCard)
                     .putString(SCREEN_POSITION_PREF_STRING, positionString)
@@ -960,6 +977,7 @@ public class PreferenceConfiguration {
         copy.perfOverlayOrientation = this.perfOverlayOrientation;
         copy.perfOverlayPosition = this.perfOverlayPosition;
         copy.reverseResolution = this.reverseResolution;
+        copy.rotableScreen = this.rotableScreen;
         copy.screenPosition = this.screenPosition;
         copy.screenOffsetX = this.screenOffsetX;
         copy.screenOffsetY = this.screenOffsetY;
@@ -970,6 +988,7 @@ public class PreferenceConfiguration {
         copy.enableNativeMousePointer = this.enableNativeMousePointer;
         copy.gyroToRightStick = this.gyroToRightStick;
         copy.gyroFullDeflectionDps = this.gyroFullDeflectionDps;
+        copy.gyroSensitivityMultiplier = this.gyroSensitivityMultiplier;
         copy.gyroActivationKeyCode = this.gyroActivationKeyCode;
         copy.gyroInvertXAxis = this.gyroInvertXAxis;
         copy.gyroInvertYAxis = this.gyroInvertYAxis;

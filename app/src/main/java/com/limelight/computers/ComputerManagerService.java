@@ -23,6 +23,7 @@ import com.limelight.nvstream.http.NvHTTP;
 import com.limelight.nvstream.http.PairingManager;
 import com.limelight.nvstream.mdns.MdnsComputer;
 import com.limelight.nvstream.mdns.MdnsDiscoveryListener;
+import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.utils.CacheHelper;
 import com.limelight.utils.NetHelper;
 import com.limelight.utils.ServerHelper;
@@ -331,6 +332,9 @@ public class ComputerManagerService extends Service {
     }
 
     private void populateExternalAddress(ComputerDetails details) {
+        PreferenceConfiguration prefConfig = PreferenceConfiguration.readPreferences(this);
+        if (!prefConfig.enableStun)
+            return;
         boolean boundToNetwork = false;
         boolean activeNetworkIsVpn = NetHelper.isActiveNetworkVpn(this);
         ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);

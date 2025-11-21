@@ -65,11 +65,26 @@
             android:title="@string/title_checkbox_reverse_resolution"
             android:summary="@string/summary_checkbox_reverse_resolution"
             android:defaultValue="false" />
+        <CheckBoxPreference
+            android:key="checkbox_rotable_screen"
+            android:title="允许屏幕旋转"
+            android:summary="允许在串流时旋转屏幕（不会改变视频分辨率）"
+            android:defaultValue="false" />
     </PreferenceCategory>
     <PreferenceCategory
         android:title="@string/category_screen_position_settings"
         android:icon="@drawable/ic_screen_position"
         android:layout="@layout/preference_category_material">
+        <CheckBoxPreference
+            android:key="checkbox_enable_pip"
+            android:title="@string/title_checkbox_enable_pip"
+            android:summary="@string/summary_checkbox_enable_pip"
+            android:defaultValue="false" />
+        <com.limelight.preferences.ExternalDisplayPreference
+            android:key="use_external_display"
+            android:title="@string/title_use_external_display"
+            android:summary="@string/summary_use_external_display"
+            android:defaultValue="false" />
         <com.limelight.preferences.IconListPreference
             android:key="list_screen_position"
             android:title="@string/title_screen_position"
@@ -335,6 +350,12 @@
             android:key="checkbox_show_guide_button"
             android:summary="@string/summary_show_guide_button"
             android:title="@string/title_show_guide_button" />
+        <CheckBoxPreference
+            android:key="checkbox_half_height_osc_portrait"
+            android:dependency="checkbox_show_onscreen_controls"
+            android:title="竖屏模式半高"
+            android:summary="竖屏下控制按钮将显示于下半屏"
+            android:defaultValue="true" />
         <com.limelight.preferences.SeekBarPreference
             android:key="seekbar_osc_opacity"
             android:dependency="checkbox_show_onscreen_controls"
@@ -398,20 +419,15 @@
             android:key="checkbox_lock_screen_after_disconnect"
             android:summary="@string/summary_checkbox_lock_screen_after_disconnect"
             android:title="@string/title_checkbox_lock_screen_after_disconnect" />
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="checkbox_swap_quit_and_disconnect"
+            android:summary="@string/summary_checkbox_swap_quit_and_disconnect"
+            android:title="@string/title_checkbox_swap_quit_and_disconnect" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/category_ui_settings"
         android:key="category_ui_settings"
         android:layout="@layout/preference_category_material">
-        <CheckBoxPreference
-            android:key="checkbox_enable_pip"
-            android:title="@string/title_checkbox_enable_pip"
-            android:summary="@string/summary_checkbox_enable_pip"
-            android:defaultValue="false" />
-        <com.limelight.preferences.ExternalDisplayPreference
-            android:key="use_external_display"
-            android:title="@string/title_use_external_display"
-            android:summary="@string/summary_use_external_display"
-            android:defaultValue="false" />
         <com.limelight.preferences.LanguagePreference
             android:key="list_languages"
             android:title="@string/title_language_list"
@@ -504,6 +520,11 @@
             android:key="checkbox_enable_post_stream_toast"
             android:title="@string/title_enable_post_stream_toast"
             android:summary="@string/summary_enable_post_stream_toast"
+            android:defaultValue="false"/>
+        <CheckBoxPreference
+            android:key="checkbox_enable_stun"
+            android:title="获取公网 IP"
+            android:summary="这会尝试利用 STUN 服务器获取被控端的公网访问方式，以便在离开局域网环境后继续连接。但此功能可能会导致无公网 IP 用户扫描变慢"
             android:defaultValue="false"/>
 
 

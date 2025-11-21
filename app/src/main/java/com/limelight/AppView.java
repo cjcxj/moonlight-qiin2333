@@ -52,6 +52,7 @@ import android.view.ContextMenu.ContextMenuInfo;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -381,6 +382,13 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
         TextView label = findViewById(R.id.appListText);
         setTitle(computerName);
         label.setText(computerName);
+
+        // Setup settings button
+        ImageButton settingsButton = findViewById(R.id.settingsButton);
+        settingsButton.setOnClickListener(v -> {
+            Intent intent = new Intent(AppView.this, com.limelight.preferences.StreamSettings.class);
+            startActivity(intent);
+        });
 
         // Bind to the computer manager service
         bindService(new Intent(this, ComputerManagerService.class), serviceConnection,
@@ -1346,15 +1354,15 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
                 view.setOnFocusChangeListener((v, hasFocus) -> {
                     if (!hasFocus) return;
 
-                    int pos = rv.getChildAdapterPosition(v);
-                    if (pos < 0 || pos >= appGridAdapter.getCount()) return;
-
-                    AppObject app = (AppObject) appGridAdapter.getItem(pos);
                     // 延迟处理焦点变化，确保点击事件优先处理
                     v.post(() -> {
-                        if (v.hasFocus()) {
-                            handleSelectionChange(pos, app);
-                        }
+                        if (!v.hasFocus()) return;
+                        
+                        int pos = rv.getChildAdapterPosition(v);
+                        if (pos < 0 || pos >= appGridAdapter.getCount()) return;
+
+                        AppObject app = (AppObject) appGridAdapter.getItem(pos);
+                        handleSelectionChange(pos, app);
                     });
                 });
             }
