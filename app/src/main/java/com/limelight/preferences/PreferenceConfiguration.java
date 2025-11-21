@@ -82,6 +82,7 @@ public class PreferenceConfiguration {
     private static final String ENABLE_HDR_PREF_STRING = "checkbox_enable_hdr";
     private static final String ENABLE_PIP_PREF_STRING = "checkbox_enable_pip";
     private static final String ENABLE_PERF_OVERLAY_STRING = "checkbox_enable_perf_overlay";
+    private static final String PERF_OVERLAY_LOCKED_STRING = "perf_overlay_locked";
     private static final String PERF_OVERLAY_ORIENTATION_STRING = "list_perf_overlay_orientation";
     private static final String PERF_OVERLAY_POSITION_STRING = "list_perf_overlay_position";
     private static final String BIND_ALL_USB_STRING = "checkbox_usb_bind_all";
@@ -155,6 +156,7 @@ public class PreferenceConfiguration {
     private static final boolean DEFAULT_ENABLE_HDR = false;
     private static final boolean DEFAULT_ENABLE_PIP = false;
     private static final boolean DEFAULT_ENABLE_PERF_OVERLAY = false;
+    private static final boolean DEFAULT_PERF_OVERLAY_LOCKED = false;
     private static final String DEFAULT_PERF_OVERLAY_ORIENTATION = "horizontal";
     private static final String DEFAULT_PERF_OVERLAY_POSITION = "top";
     private static final boolean DEFAULT_BIND_ALL_USB = false;
@@ -269,6 +271,7 @@ public class PreferenceConfiguration {
     public boolean enableHdr;
     public boolean enablePip;
     public boolean enablePerfOverlay;
+    public boolean perfOverlayLocked;
     public PerfOverlayOrientation perfOverlayOrientation;
     public PerfOverlayPosition perfOverlayPosition;
     public boolean enableSimplifyPerfOverlay;
@@ -734,6 +737,7 @@ public class PreferenceConfiguration {
         config.enableHdr = prefs.getBoolean(ENABLE_HDR_PREF_STRING, DEFAULT_ENABLE_HDR) && !isShieldAtvFirmwareWithBrokenHdr();
         config.enablePip = prefs.getBoolean(ENABLE_PIP_PREF_STRING, DEFAULT_ENABLE_PIP);
         config.enablePerfOverlay = prefs.getBoolean(ENABLE_PERF_OVERLAY_STRING, DEFAULT_ENABLE_PERF_OVERLAY);
+        config.perfOverlayLocked = prefs.getBoolean(PERF_OVERLAY_LOCKED_STRING, DEFAULT_PERF_OVERLAY_LOCKED);
         
         // 读取性能覆盖层方向和位置设置
         String perfOverlayOrientation = prefs.getString(PERF_OVERLAY_ORIENTATION_STRING, DEFAULT_PERF_OVERLAY_ORIENTATION);
@@ -914,6 +918,7 @@ public class PreferenceConfiguration {
                     .putString(VIDEO_FORMAT_PREF_STRING, getVideoFormatPreferenceString(videoFormat))
                     .putBoolean(ENABLE_HDR_PREF_STRING, enableHdr)
                     .putBoolean(ENABLE_PERF_OVERLAY_STRING, enablePerfOverlay)
+                    .putBoolean(PERF_OVERLAY_LOCKED_STRING, perfOverlayLocked)
                     .putBoolean(REVERSE_RESOLUTION_PREF_STRING, reverseResolution)
                     .putBoolean(SHOW_BITRATE_CARD_PREF_STRING, showBitrateCard)
                     .putBoolean(SHOW_GYRO_CARD_PREF_STRING, showGyroCard)
@@ -951,6 +956,7 @@ public class PreferenceConfiguration {
         copy.videoFormat = this.videoFormat;
         copy.enableHdr = this.enableHdr;
         copy.enablePerfOverlay = this.enablePerfOverlay;
+        copy.perfOverlayLocked = this.perfOverlayLocked;
         copy.perfOverlayOrientation = this.perfOverlayOrientation;
         copy.perfOverlayPosition = this.perfOverlayPosition;
         copy.reverseResolution = this.reverseResolution;
