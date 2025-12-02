@@ -722,7 +722,7 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
 
         // If a game is already running, resume it immediately
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        if (prefs.getBoolean("checkbox_resume_stream", true) &&
+        if (prefs.getBoolean("checkbox_resume_stream", false) &&
                 lastRunningAppId != 0 && appGridAdapter != null) {
             for (int i = 0; i < appGridAdapter.getCount(); i++) {
                 AppObject app = (AppObject) appGridAdapter.getItem(i);
