@@ -133,7 +133,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private float twoFingerStartX = 0, twoFingerStartY = 0;
     private static final int TWO_FINGER_TAP_THRESHOLD = 100;
     private static final float TWO_FINGER_MOVE_THRESHOLD = 30f;
-    
+
     public static final int REFERENCE_HORIZ_RES = 1280;
     public static final int REFERENCE_VERT_RES = 720;
 
@@ -218,6 +218,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private Map<Integer, NativeTouchContext.Pointer> nativeTouchPointerMap = new HashMap<>();
     private String currentHostAddress; // 保存当前连接的IP
     private boolean shouldResumeSession = false;
+    // 极端恢复模式开关：进入后台时保持连接不断开
+    private boolean isExtremeResumeEnabled = false;
+    private AndroidAudioRenderer audioRenderer;
 
     public enum BackKeyMenuMode {
         GAME_MENU,     // 游戏菜单模式
@@ -350,7 +353,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
+        // 这一行告诉 Android 系统，这个窗口需要硬件加速，并且不要在后台进行不必要的缓冲
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().setDecorFitsSystemWindows(false);
+        }
+
         UiHelper.setLocale(this);
 
         // We don't want a title bar
@@ -383,7 +391,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // Read the stream preferences
         prefConfig = PreferenceConfiguration.readPreferences(this);
         tombstonePrefs = Game.this.getSharedPreferences("DecoderTombstone", 0);
-        
+        // 读取极端恢复模式配置
+        SharedPreferences globalPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+        isExtremeResumeEnabled = globalPrefs.getBoolean("checkbox_extreme_resume", false) && globalPrefs.getBoolean("checkbox_resume_stream", false);
+
         // Initialize app settings manager
         appSettingsManager = new AppSettingsManager(this);
         
@@ -1762,6 +1773,17 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        // 在 App 彻底关闭时，清理替身线程
+        if (mDummyHolder != null) {
+            mDummyHolder.release();
+            mDummyHolder = null;
+        }
+
+        // 确保在 Activity 彻底销毁时停止连接（因为 onStop 可能跳过了它）
+        if (conn != null && connected) {
+            stopConnection();
+        }
 
         if (controllerHandler != null) {
             controllerHandler.destroy();
@@ -3181,7 +3203,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         for (TouchContext touchContext : touchContextMap) {
                             touchContext.setPointerCount(event.getPointerCount());
                         }
-                        
+
                         // 双指右键检测
                         if (event.getPointerCount() == 2 && prefConfig.touchscreenTrackpad) {
                             twoFingerDownTime = event.getEventTime();
@@ -3190,7 +3212,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                             twoFingerMoved = false;
                             twoFingerTapPending = false;
                         }
-                        
+
                         context.touchDownEvent((int) normalizedCoords[0], (int) normalizedCoords[1], event.getEventTime(), true);
                         break;
                     }
@@ -3198,7 +3220,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     case MotionEvent.ACTION_UP: {
                         // 对主触摸点进行转换
                         float[] normalizedCoords = getNormalizedCoordinates(streamView, event.getX(actionIndex), event.getY(actionIndex));
-                        
+
                         // 双指右键检测（仅触控板模式）
                         if (event.getPointerCount() == 2 && !twoFingerMoved && prefConfig.touchscreenTrackpad) {
                             if (event.getEventTime() - twoFingerDownTime < TWO_FINGER_TAP_THRESHOLD) {
@@ -3216,7 +3238,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                                 twoFingerTapPending = true;
                             }
                         }
-                        
+
                         if (event.getPointerCount() == 1 &&
                                 (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || (event.getFlags() & MotionEvent.FLAG_CANCELED) == 0)) {
                             // 双指点击检测：两个手指都抬起时
@@ -3233,7 +3255,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                                 }
                             }
                             twoFingerTapPending = false;
-                            
+
                             // 三指点击：弹出键盘
                             if (event.getEventTime() - multiFingerDownTime < MULTI_FINGER_TAP_THRESHOLD) {
                                 toggleKeyboard();
@@ -3269,7 +3291,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                             twoFingerMoved = true;
                         }
                     }
-                    
+
                     // ACTION_MOVE 的处理需要更仔细，因为它有历史事件
                     // 首先处理历史事件
                     for (int i = 0; i < event.getHistorySize(); i++) {
@@ -3750,6 +3772,19 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     protected void onStart() {
         super.onStart();
 
+        // 如果处于极端恢复模式且连接仍然活跃
+        if (isExtremeResumeEnabled && connected) {
+            LimeLog.info("Extreme Resume: Returning to foreground with active connection.");
+            // 确保加载遮罩是隐藏的
+            if (progressOverlay != null) {
+                progressOverlay.dismiss();
+                progressOverlay = null;
+            }
+            // 恢复系统 UI 隐藏状态
+            hideSystemUi(500);
+            return;
+        }
+
         if (shouldResumeSession) {
             LimeLog.info("从后台恢复，正在快速重连...");
 
@@ -3771,13 +3806,28 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             progressOverlay.show(getResources().getString(R.string.conn_establishing_title),
                     getResources().getString(R.string.conn_establishing_msg));
 
-            // 重新准备连接对象
-            prepareConnection();
+
+            try {
+                // 这个方法内部涉及 InputManager 和 Service 绑定，必须在主线程
+                prepareConnection();
+            } catch (Exception e) {
+                LimeLog.severe("Failed to prepare connection: " + e.getMessage());
+                // 如果准备失败，最好结束 Activity 防止状态错乱
+                finish();
+                return;
+            }
 
             // 重置连接状态标志
             attemptedConnection = false;
             connecting = false;
             connected = false;
+
+            // 通知 SurfaceView 刷新，这会尽快触发 surfaceChanged
+            // 从而触发 conn.start()
+            if (streamView != null) {
+                streamView.requestLayout();
+                streamView.invalidate();
+            }
         }
     }
 
@@ -3882,20 +3932,46 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             throw new IllegalStateException("Surface changed before creation!");
         }
 
+
+        if (decoderRenderer != null) {
+            // 1. 设置回真正的屏幕 Holder
+            decoderRenderer.setRenderTarget(holder);
+        }
+
+        // 强制断开替身连接
+        if (mDummyHolder != null) {
+            mDummyHolder.release();
+            mDummyHolder = null; // 销毁引用，迫使下次切后台重新创建
+        }
+
         if (!attemptedConnection) {
             attemptedConnection = true; // 标记已尝试连接
 
             // Update GameManager state to indicate we're "loading" while connecting
             UiHelper.notifyStreamConnecting(Game.this);
 
-            decoderRenderer.setRenderTarget(holder);
 
-            conn.start(new AndroidAudioRenderer(Game.this, prefConfig.enableAudioFx, prefConfig.enableSpatializer),
-                    decoderRenderer, Game.this);
+
+            // 实例化并保存到成员变量
+            this.audioRenderer = new AndroidAudioRenderer(Game.this, prefConfig.enableAudioFx, prefConfig.enableSpatializer);
+
+            // 使用成员变量启动连接
+            conn.start(this.audioRenderer, decoderRenderer, Game.this);
 
             if (streamView != null) {
                 streamView.post(this::syncCursorWithStream);
             }
+        } else if (connected && isExtremeResumeEnabled) {
+            // 恢复时强制同步一次光标位置，防止错位
+            if (streamView != null) {
+                streamView.post(this::syncCursorWithStream);
+            }
+
+            // 回到前台，恢复音量
+            if (audioRenderer != null) {
+                audioRenderer.setMuted(false);
+            }
+
         }
 
         // 处理缩放手势
@@ -3948,11 +4024,40 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         destroyLocalCursorRenderers();
 
         if (attemptedConnection) {
-            // Let the decoder know immediately that the surface is gone
-            decoderRenderer.prepareForStop();
+            if (isExtremeResumeEnabled && !isFinishing()) {
 
-            if (connected) {
-                stopConnection();
+                // 如果为true，则静音
+                SharedPreferences globalPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+                if (!globalPrefs.getBoolean("checkbox_background_audio", false)) {
+                    if (audioRenderer != null) {
+                        audioRenderer.setMuted(true);
+                        LimeLog.info("Extreme Resume: Audio muted for background.");
+                    }
+                }
+
+                LimeLog.info("Extreme Resume: Switching to Dummy Surface.");
+
+                // 1. 创建替身
+                if (mDummyHolder == null) {
+                    mDummyHolder = new DummySurfaceHolder();
+                }
+
+                // 2. 将解码器目标指向替身
+                // 解码器会以为这还是个有效的屏幕，继续工作，不会 NPE，也不会 crash
+                if (decoderRenderer != null) {
+                    try {
+                        decoderRenderer.setRenderTarget(mDummyHolder);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                return; // 安全返回，后台继续解码
+            } else {
+                // 正常退出
+                decoderRenderer.prepareForStop();
+                if (connected) {
+                    stopConnection();
+                }
             }
         }
     }
@@ -4697,4 +4802,80 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // Apply background color without animation
         notificationOverlayView.setCardBackgroundColor(backgroundColor);
     }
+
+    // =======================================================
+    // 替身 SurfaceHolder，用于后台保活解码器
+    // =======================================================
+    private class DummySurfaceHolder implements SurfaceHolder, android.graphics.SurfaceTexture.OnFrameAvailableListener {
+        private final android.graphics.SurfaceTexture mSurfaceTexture;
+        private final Surface mSurface;
+        private final android.os.HandlerThread mDrainThread; // 专门用于“倒垃圾”的后台线程
+        private final android.os.Handler mDrainHandler;
+
+        public DummySurfaceHolder() {
+            // 1. 启动一个后台线程，专门处理帧消耗，避免阻塞主线程
+            mDrainThread = new android.os.HandlerThread("DummySurfaceDrainer");
+            mDrainThread.start();
+            mDrainHandler = new android.os.Handler(mDrainThread.getLooper());
+
+            // 2. 创建 SurfaceTexture (0 表示不绑定任何 GL 纹理 ID)
+            mSurfaceTexture = new android.graphics.SurfaceTexture(0);
+
+            // 关键：将它从当前 GL 上下文解绑 (防止 updateTexImage 报错)
+            mSurfaceTexture.detachFromGLContext();
+
+            // 3. 设置监听器：每当有新的一帧数据进来，就在后台线程调用 onFrameAvailable
+            mSurfaceTexture.setOnFrameAvailableListener(this, mDrainHandler);
+
+            mSurface = new Surface(mSurfaceTexture);
+        }
+
+        // [核心逻辑] 当解码器把一帧画面渲染过来时，这个方法会被调用
+        @Override
+        public void onFrameAvailable(android.graphics.SurfaceTexture surfaceTexture) {
+            try {
+                // 这一步至关重要！
+                // updateTexImage() 会将最新的一帧从队列中取出来。
+                // 这相当于“消费”了这一帧，从而腾出了缓冲区的一个空位。
+                // 这样解码器就可以继续渲染下一帧，永远不会因为缓冲区满而卡死。
+                surfaceTexture.updateTexImage();
+            } catch (Exception e) {
+                // 忽略可能的异常（比如在释放过程中收到了帧）
+            }
+        }
+
+        public void release() {
+            // 停止监听
+            mSurfaceTexture.setOnFrameAvailableListener(null);
+
+            // 释放资源
+            mSurface.release();
+            mSurfaceTexture.release();
+
+            // 停止后台线程
+            mDrainThread.quitSafely();
+        }
+
+        @Override
+        public Surface getSurface() {
+            return mSurface;
+        }
+
+        // 下面是接口必须实现的方法，全部留空即可
+        @Override public void addCallback(Callback callback) {}
+        @Override public void removeCallback(Callback callback) {}
+        @Override public boolean isCreating() { return false; }
+        @Override public void setType(int type) {}
+        @Override public void setFixedSize(int width, int height) {}
+        @Override public void setSizeFromLayout() {}
+        @Override public void setFormat(int format) {}
+        @Override public void setKeepScreenOn(boolean screenOn) {}
+        @Override public android.graphics.Canvas lockCanvas() { return null; }
+        @Override public android.graphics.Canvas lockCanvas(android.graphics.Rect dirty) { return null; }
+        @Override public void unlockCanvasAndPost(android.graphics.Canvas canvas) {}
+        @Override public android.graphics.Rect getSurfaceFrame() { return new android.graphics.Rect(0,0,1,1); }
+    }
+
+    private DummySurfaceHolder mDummyHolder;
+
 }
