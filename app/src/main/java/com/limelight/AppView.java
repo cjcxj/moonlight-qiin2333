@@ -36,7 +36,6 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.preference.PreferenceManager;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Build;
@@ -121,8 +120,6 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
     public final static String SHOW_HIDDEN_APPS_EXTRA = "ShowHiddenApps";
     public final static String SELECTED_ADDRESS_EXTRA = "SelectedAddress";
     public final static String SELECTED_PORT_EXTRA = "SelectedPort";
-
-    public static boolean MANUAL_DISCONNECT = false;
 
     // Layout constants
     private static final int VERTICAL_SPAN_COUNT = 2;  // 竖屏模式默认双列
@@ -712,27 +709,6 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
         UiHelper.showDecoderCrashDialog(this);
 
         inForeground = true;
-
-        // If the user manually disconnected, don't auto-resume
-        if (MANUAL_DISCONNECT) {
-            MANUAL_DISCONNECT = false;
-            startComputerUpdates();
-            return;
-        }
-
-        // If a game is already running, resume it immediately
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        if (prefs.getBoolean("checkbox_resume_stream", false) &&
-                lastRunningAppId != 0 && appGridAdapter != null) {
-            for (int i = 0; i < appGridAdapter.getCount(); i++) {
-                AppObject app = (AppObject) appGridAdapter.getItem(i);
-                if (app.app.getAppId() == lastRunningAppId) {
-                    // Start the stream
-                    ServerHelper.doStart(this, app.app, computer, managerBinder);
-                    return;
-                }
-            }
-        }
 
         startComputerUpdates();
 
