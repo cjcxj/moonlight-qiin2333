@@ -35,15 +35,18 @@ import com.limelight.binding.input.touch.RelativeTouchContext;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.http.NvApp;
 import com.limelight.nvstream.input.KeyboardPacket;
+import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.utils.KeyCodeMapper;
 
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
@@ -79,6 +82,7 @@ public class GameMenu {
     private static final Map<String, Integer> ICON_MAP = new HashMap<>();
 
     static {
+        ICON_MAP.put("game_menu_change_resolution", R.drawable.ic_resolution_cute);
         ICON_MAP.put("game_menu_toggle_keyboard", R.drawable.ic_keyboard_cute);
         ICON_MAP.put("game_menu_toggle_performance_overlay", R.drawable.ic_performance_cute);
         ICON_MAP.put("game_menu_toggle_virtual_controller", R.drawable.ic_controller_cute);
@@ -657,6 +661,103 @@ public class GameMenu {
     }
 
 
+    /**
+     * 显示分辨率选择菜单
+     */
+    private void showResolutionMenu() {
+        List<MenuOption> options = new ArrayList<>();
+
+        // 获取当前的分辨率字符串，用于标记
+        String currentResStr = game.prefConfig.width + "x" + game.prefConfig.height;
+
+        // 1. 添加预设分辨率
+        for (String res : PreferenceConfiguration.RESOLUTIONS) {
+            String label = res;
+            // 尝试简单的匹配标记
+            if (res.equals(currentResStr)) {
+                label += " (Current)";
+            }
+
+            final String targetRes = res;
+            options.add(new MenuOption(
+                    label,
+                    false,
+                    () -> changeResolution(targetRes),
+                    null,
+                    false
+            ));
+        }
+
+        // 2. 添加自定义分辨率
+        SharedPreferences customPrefs = game.getSharedPreferences("custom_resolutions", Context.MODE_PRIVATE);
+        Set<String> customResolutions = customPrefs.getStringSet("custom_resolutions", null);
+
+        if (customResolutions != null && !customResolutions.isEmpty()) {
+            List<String> sortedCustom = new ArrayList<>(customResolutions);
+            // 简单的分辨率排序
+            Collections.sort(sortedCustom, (s1, s2) -> {
+                String[] parts1 = s1.split("x");
+                String[] parts2 = s2.split("x");
+                if (parts1.length != 2 || parts2.length != 2) return s1.compareTo(s2);
+                try {
+                    int w1 = Integer.parseInt(parts1[0]);
+                    int h1 = Integer.parseInt(parts1[1]);
+                    int w2 = Integer.parseInt(parts2[0]);
+                    int h2 = Integer.parseInt(parts2[1]);
+
+                    if (w1 != w2) return Integer.compare(w1, w2);
+                    return Integer.compare(h1, h2);
+                } catch (NumberFormatException e) {
+                    return s1.compareTo(s2);
+                }
+            });
+
+            for (String res : sortedCustom) {
+                // 避免重复显示预设中已有的分辨率
+                boolean isPreset = false;
+                for (String preset : PreferenceConfiguration.RESOLUTIONS) {
+                    if (preset.equals(res)) {
+                        isPreset = true;
+                        break;
+                    }
+                }
+                if (isPreset) continue;
+
+                String label = res + " (Custom)";
+                if (res.equals(currentResStr)) {
+                    label += " (Current)";
+                }
+
+                final String targetRes = res;
+                options.add(new MenuOption(
+                        label,
+                        false,
+                        () -> changeResolution(targetRes),
+                        null,
+                        false
+                ));
+            }
+        }
+
+        showSubMenu("Change Resolution", options.toArray(new MenuOption[0]));
+    }
+
+    private void changeResolution(String resString) {
+        // 更新 SharedPreferences
+        android.preference.PreferenceManager.getDefaultSharedPreferences(game)
+                .edit()
+                .putString(PreferenceConfiguration.RESOLUTION_PREF_STRING, resString)
+                .apply();
+
+        Toast.makeText(game, "Resolution changed to " + resString + ". Restarting...", Toast.LENGTH_SHORT).show();
+
+        // 重启 Activity 以应用新配置
+        game.changeResolution();
+
+        if (activeDialog != null) {
+            activeDialog.dismiss();
+        }
+    }
 
     /**
      * 调整码率
@@ -1711,6 +1812,15 @@ public class GameMenu {
                 "game_menu_toggle_performance_overlay",
                 true,
                  true
+        ));
+
+        normalOptions.add(new MenuOption(
+                "更改分辨率 Change Resolution",
+                false,
+                this::showResolutionMenu,
+                "game_menu_change_resolution",
+                true,
+                true
         ));
 
         // 只有在启用了虚拟手柄时才显示虚拟手柄切换选项
