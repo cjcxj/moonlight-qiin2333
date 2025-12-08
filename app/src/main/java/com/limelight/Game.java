@@ -359,6 +359,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // 防止上次异常退出导致通知残留，启动时先清理一次
+        cancelKeepAliveNotification();
+
         // 这一行告诉 Android 系统，这个窗口需要硬件加速，并且不要在后台进行不必要的缓冲
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             getWindow().setDecorFitsSystemWindows(false);
@@ -1782,8 +1785,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
+        // 将取消通知提到最前面执行，确保无论后续是否崩溃，通知都能消失
         cancelKeepAliveNotification();
+        super.onDestroy();
 
         // 在 App 彻底关闭时，清理替身线程
         if (mDummyHolder != null) {
@@ -4113,10 +4117,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         notificationManager.notify(KEEP_ALIVE_NOTIFICATION_ID, builder.build());
     }
 
-    private void cancelKeepAliveNotification() {
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        if (notificationManager != null) {
-            notificationManager.cancel(KEEP_ALIVE_NOTIFICATION_ID);
+private void cancelKeepAliveNotification() {
+        try {
+            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (notificationManager != null) {
+                notificationManager.cancel(KEEP_ALIVE_NOTIFICATION_ID);
+            }
+        } catch (Exception e) {
+            // 忽略取消通知时的错误，防止影响退出流程
+            e.printStackTrace();
         }
     }
 
