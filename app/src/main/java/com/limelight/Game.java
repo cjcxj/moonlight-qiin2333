@@ -1305,8 +1305,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         if (requestCode == KEEP_ALIVE_NOTIFICATION_ID) {
             // Check if the permission was granted
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission granted, show the notification
-                showKeepAliveNotification();
+                // 用户给了权限，立即启动服务
+                StreamNotificationService.start(this, currentHostAddress, appName);
             } else {
                 // Permission denied, show a toast message
                 Toast.makeText(this, "没有通知权限，后台串流可能会中断", Toast.LENGTH_LONG).show();
@@ -3515,6 +3515,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // 代码会认为这是一个新的开始，从而再次执行 conn.start()。
         attemptedConnection = false;
 
+        cancelKeepAliveNotification();
+
         if (connecting || connected) {
             connecting = connected = false;
             updatePipAutoEnter();
@@ -3754,6 +3756,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 UiHelper.notifyStreamConnected(Game.this);
 
                 hideSystemUi(1000);
+
+                // 连接一开始就启动保活服务
+                // 此时 App 在前台，可以合法启动 Foreground Service
+                showKeepAliveNotification();
             }
         });
 
@@ -3828,7 +3834,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // 如果处于不断开连接模式且连接仍然活跃
         if (isExtremeResumeEnabled && connected) {
-            cancelKeepAliveNotification();
             LimeLog.info("Extreme Resume: Returning to foreground with active connection.");
             // 确保加载遮罩是隐藏的
             if (progressOverlay != null) {
@@ -3841,7 +3846,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
 
         if (shouldResumeSession) {
-            cancelKeepAliveNotification();
             LimeLog.info("从后台恢复，正在快速重连...");
 
             // 强制关闭所有残留的 Dialog
@@ -4025,7 +4029,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
             // 回到前台，恢复音量
             if (audioRenderer != null) {
-                audioRenderer.setMuted(false);
+                audioRenderer.resumeProcessing();
             }
 
         }
@@ -4086,7 +4090,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 SharedPreferences globalPrefs = PreferenceManager.getDefaultSharedPreferences(this);
                 if (!globalPrefs.getBoolean("checkbox_background_audio", false)) {
                     if (audioRenderer != null) {
-                        audioRenderer.setMuted(true);
+                        audioRenderer.pauseProcessing();
                         LimeLog.info("Extreme Resume: Audio muted for background.");
                     }
                 }
