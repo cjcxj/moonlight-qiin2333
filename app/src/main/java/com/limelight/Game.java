@@ -1897,6 +1897,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     protected void onStop() {
         super.onStop();
 
+        if ((isExtremeResumeEnabled || isChangingResolution) && !isFinishing()) {
+            LimeLog.info("Extreme Resume: onStop intercepted.");
+            // 只有在不是修改分辨率的情况下（即真的是切到后台了），才发通知
+            if (!isChangingResolution) {
+                showKeepAliveNotification();
+            }
+            return;
+        }
+
         // 检查是否是因为进入后台（包括锁屏、滑到任务栏、Home键）导致的应用停止
         // 只要 Activity 不是正在 Finishing（即不是用户点了退出或崩溃），且开启了快速恢复，就标记为需要恢复
         if (!shouldResumeSession && !isFinishing()) {
