@@ -869,7 +869,7 @@ public class ComputerManagerService extends Service {
                 ComputerDetails details = null;
                 
                 try {
-                    // 对于LAN地址，如果网络类型是WAN或移动网络，快速失败
+                    // 对于LAN地址，如果网络类型是WAN(不应该包含移动网络，因为有可能是通过移动热点分享网络，而这时是LAN地址)，快速失败
                     // 因为LAN地址不应该从公网访问
                     if (isLanAddress && diagnostics != null && 
                         diagnostics.networkType == NetworkDiagnostics.NetworkType.WAN) {
