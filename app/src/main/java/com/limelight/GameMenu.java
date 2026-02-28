@@ -1008,10 +1008,9 @@ public class GameMenu {
     /**
      * 设置自定义按键卡片
      */
-    @SuppressLint("UseCompatLoadingForDrawables")
     private void setupCustomKeysCard(View customView) {
         View cardContainer = customView.findViewById(R.id.customKeysCardContainer);
-        LinearLayout listLayout = customView.findViewById(R.id.customKeysListLayout);
+        ListView listLayout = customView.findViewById(R.id.customKeysListLayout);
 
         if (cardContainer == null || listLayout == null) return;
 
@@ -1029,61 +1028,36 @@ public class GameMenu {
 
         // 显示容器
         cardContainer.setVisibility(View.VISIBLE);
-        listLayout.removeAllViews();
 
-        // 3. 循环创建美化的列表项
+        // 将自定义按键转换为 MenuOption 数组
+        MenuOption[] keyOptions = new MenuOption[keys.size()];
         for (int i = 0; i < keys.size(); i++) {
             CustomKeyData keyData = keys.get(i);
-
-            // --- 创建文本项  ---
-            TextView itemView = new TextView(game);
-            itemView.setText(keyData.name);
-
-            // 样式设置
-            itemView.setTextColor(0xFF333333); // 灰色文字
-            itemView.setTextSize(14); // 字体大小
-            itemView.setGravity(android.view.Gravity.CENTER); // 文字居中
-
-            // 设置内边距 (Padding)
-            int paddingVertical = dpToPx(7);
-            int paddingHorizontal = dpToPx(10);
-            itemView.setPadding(paddingHorizontal, paddingVertical, paddingHorizontal, paddingVertical);
-
-            // 布局参数
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
+            keyOptions[i] = new MenuOption(
+                    keyData.name,
+                    false,
+                    () -> {
+                        sendKeys(keyData.keys);
+                        // 震动反馈
+                        listLayout.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
+                    },
+                    null,  // 不使用图标
+                    false  // 不显示图标
             );
-            itemView.setLayoutParams(params);
-
-            // 添加点击效果
-            itemView.setBackground(game.getDrawable(R.drawable.button_selector_background));
-
-            // 点击事件
-            itemView.setOnClickListener(v -> {
-                sendKeys(keyData.keys);
-                // 震动反馈
-                v.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
-            });
-
-            // 添加 Item
-            listLayout.addView(itemView);
-
-            // --- 添加分割线 (除了最后一个) ---
-            if (i < keys.size() - 1) {
-                View divider = new View(game);
-                LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        1 // 高度 1px
-                );
-                // 移除左右边距
-                dividerParams.setMargins(0, 0, 0, 0);
-
-                divider.setLayoutParams(dividerParams);
-                divider.setBackgroundColor(0x33000000); // 20% 透明度的黑色
-                listLayout.addView(divider);
-            }
         }
+
+        // 使用 SuperMenuAdapter 渲染列表项
+        SuperMenuAdapter adapter = new SuperMenuAdapter(game, keyOptions);
+        listLayout.setAdapter(adapter);
+
+        // 设置点击事件处理
+        listLayout.setItemsCanFocus(true);
+        listLayout.setOnItemClickListener((parent, view, pos, id) -> {
+            MenuOption option = adapter.getItem(pos);
+            if (option != null && option.getRunnable() != null) {
+                option.getRunnable().run();
+            }
+        });
     }
 
     // 辅助方法：dp转px

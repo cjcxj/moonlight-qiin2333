@@ -180,7 +180,6 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:visibility="gone"
-                    android:background="@drawable/game_menu_bitrate_bg"
                     android:layout_marginBottom="8dp">
                     <TextView
                         android:text="特殊按键 Shortcuht"
@@ -190,14 +189,18 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:paddingLeft="16dp"
-                        android:paddingTop="8dp" />
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"/>
 
                     <!-- 列表容器 -->
-                    <LinearLayout
+                    <com.limelight.utils.NonScrollableListView
                         android:id="@+id/customKeysListLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical" />
+                        android:divider="@null"
+                        android:dividerHeight="1dp"
+                        android:fadeScrollbars="false"
+                        android:scrollbars="vertical" />
 
                 </LinearLayout>
 
