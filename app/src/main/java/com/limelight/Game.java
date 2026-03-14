@@ -491,6 +491,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // Initialize app settings manager
         appSettingsManager = new AppSettingsManager(this);
 
+        this.currentHostAddress = getIntent().getStringExtra(EXTRA_HOST);
+
         // Save computer UUID for later use
         computerUuid = getIntent().getStringExtra(EXTRA_PC_UUID);
 
@@ -2674,11 +2676,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 prefConfig.touchscreenTrackpad = true;
                 prefConfig.enableNativeMousePointer = false;
                 touchContextMap = relativeTouchContextMap;
-                cursorServiceManager.refreshLocalCursorState(prefConfig.enableLocalCursorRendering); //如果本地光标处于开启状态，则开启本地光标
+                cursorServiceManager.refreshLocalCursorState(prefConfig.enableLocalCursorRendering, currentHostAddress); //如果本地光标处于开启状态，则开启本地光标
             } else {
                 prefConfig.touchscreenTrackpad = false;
                 touchContextMap = absoluteTouchContextMap;
-                cursorServiceManager.refreshLocalCursorState(false); //关闭本地光标
+                cursorServiceManager.refreshLocalCursorState(false, currentHostAddress); //关闭本地光标
             }
         }
     }
@@ -2725,7 +2727,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
             // 注意：我们不设置 grabbedInput = false，这样按键事件仍能正常处理
 
-            cursorServiceManager.refreshLocalCursorState(true);//开启本地光标服务
+            cursorServiceManager.refreshLocalCursorState(true, currentHostAddress);//开启本地光标服务
 
             // 切换 CursorView 的可见性
             CursorView cursorOverlay = findViewById(R.id.cursorOverlay);
@@ -4133,10 +4135,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             analyticsManager.logGameStreamStart(pcName, appName);
         }
 
-        // 1. 获取并保存 IP (存到全局变量)
-        this.currentHostAddress = getIntent().getStringExtra(EXTRA_HOST);
-
-        // 2. 调用统一的状态管理方法
         cursorServiceManager.updateServiceState(
                 prefConfig.enableLocalCursorRendering && prefConfig.touchscreenTrackpad,
                 currentHostAddress);
@@ -4597,7 +4595,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
      */
     public void refreshLocalCursorState(boolean enabled) {
         if (cursorServiceManager != null) {
-            cursorServiceManager.refreshLocalCursorState(enabled);
+            cursorServiceManager.refreshLocalCursorState(enabled, currentHostAddress);
         }
     }
 

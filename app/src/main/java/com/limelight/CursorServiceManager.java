@@ -109,7 +109,7 @@ public class CursorServiceManager {
     /**
      * 刷新本地光标状态
      */
-    public void refreshLocalCursorState(boolean enabled) {
+    public void refreshLocalCursorState(boolean enabled, String hostAddress) {
         boolean shouldRender = enabled && !prefConfig.enableNativeMousePointer;
 
         for (TouchContext context : relativeTouchContextMap) {
@@ -117,7 +117,7 @@ public class CursorServiceManager {
                 ((RelativeTouchContext) context).setEnableLocalCursorRendering(shouldRender);
             }
         }
-        updateServiceState(enabled);
+        updateServiceState(enabled, hostAddress);
     }
 
     // ========== 光标与视频流同步 ==========
@@ -287,11 +287,14 @@ public class CursorServiceManager {
      * @param hostAddress   主机地址（可为 null，使用上次的地址）
      */
     public void updateServiceState(boolean shouldRun, String hostAddress) {
+        if (hostAddress != null) {
+            this.computerIpAddress = hostAddress;
+        }
+
         if (shouldRun) {
-            String ip = hostAddress != null ? hostAddress : computerIpAddress;
-            if (!isCursorNetworking && ip != null) {
-                LimeLog.info("CursorNet: Enabling cursor service during stream");
-                startService(ip);
+            if (!isCursorNetworking && this.computerIpAddress != null) {
+                LimeLog.info("CursorNet: Enabling cursor service during stream with host: " + this.computerIpAddress);
+                startService(this.computerIpAddress);
             }
         } else {
             if (isCursorNetworking) {
