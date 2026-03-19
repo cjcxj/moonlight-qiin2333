@@ -270,7 +270,7 @@ public class PreferenceConfiguration {
     public int doubleTapTimeThreshold;
     
     private static final boolean DEFAULT_ENABLE_LOCAL_CURSOR_RENDERING = true;
-    private static final boolean DEFAULT_ENABLE_KEYBOARD_VIEW_LIFT = true;
+    private static final boolean DEFAULT_ENABLE_KEYBOARD_VIEW_LIFT = false;
     private static final int DEFAULT_KEYBOARD_HEIGHT_THRESHOLD = 55; // 默认55%，即光标在屏幕下方45%时触发抬起
     public boolean enableLocalCursorRendering;
     public boolean enableKeyboardViewLift;
