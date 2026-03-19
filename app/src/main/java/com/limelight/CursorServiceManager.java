@@ -67,6 +67,7 @@ public class CursorServiceManager {
     // 文本光标状态记录 (数据感知与动作执行解耦)
     private float lastRemoteCursorYPercent = -1.0f; // 记录最近的光标高度百分比
     private boolean isLocalKeyboardActive = false; // 本地键盘/虚拟全键盘是否已打开
+    private boolean isViewLifted = false; // 当前视图是否已抬起
 
     public CursorServiceManager(StreamView streamView,
                                 CursorView cursorOverlay,
@@ -344,10 +345,9 @@ public class CursorServiceManager {
     private void handleTextCursorState(int cmdValue) {
         if (cmdValue == -1) {
             lastRemoteCursorYPercent = -1.0f;
-            // 如果输入法当前是开着的，可能需要实时恢复视图 (用户点了空白处)
-            if (isLocalKeyboardActive) {
-                uiCallback.runOnUi(() -> performViewAdjustment(false));
-            }
+            // 注意：不要在这里恢复视图，因为用户可能还在使用键盘
+            // 只有当键盘真正关闭时（onVirtualKeyboardToggle/onLocalKeyboardToggle(false)）才恢复
+            LimeLog.info("CursorState: 服务端报告退出输入状态，但保持当前视图位置");
         } else {
             lastRemoteCursorYPercent = cmdValue / 10000.0f;
             // 如果输入法已经是开启状态，实时调整高度 (用户在键盘开启时切换了输入框)
@@ -362,15 +362,21 @@ public class CursorServiceManager {
      * @param shouldLift 是否根据光标位置尝试抬起
      */
     private void performViewAdjustment(boolean shouldLift) {
-        if (streamView == null || cursorOverlay == null) return;
-
-        // 检查是否启用了键盘防遮挡功能
-        if (!prefConfig.enableKeyboardViewLift) {
+        if (streamView == null || cursorOverlay == null) {
+            LimeLog.warning("CursorState: streamView 或 cursorOverlay 为 null");
             return;
         }
 
-        // 只有在触摸板模式和本地光标开启时才执行防遮挡
+        // 检查是否启用了键盘防遮挡功能
+        if (!prefConfig.enableKeyboardViewLift) {
+            LimeLog.info("CursorState: 键盘防遮挡功能未启用");
+            return;
+        }
+
+        // 所有键盘模式都需要触摸板模式和本地光标开启
         if (!prefConfig.touchscreenTrackpad || !prefConfig.enableLocalCursorRendering) {
+            LimeLog.info("CursorState: 触摸板或本地光标未开启 (trackpad=" + 
+                prefConfig.touchscreenTrackpad + ", cursor=" + prefConfig.enableLocalCursorRendering + ")");
             return;
         }
 
@@ -382,14 +388,23 @@ public class CursorServiceManager {
         if (shouldLift && lastRemoteCursorYPercent > threshold) {
             // 只有当键盘开启 且 光标确实靠下时，才计算抬起值
             float currentHeight = streamView.getHeight();
-            if (currentHeight == 0) return;
+            if (currentHeight == 0) {
+                LimeLog.warning("CursorState: streamView 高度为 0");
+                return;
+            }
 
             float overlapPercent = lastRemoteCursorYPercent - threshold + 0.05f;
             targetY = -(overlapPercent * currentHeight);
+            isViewLifted = true;
 
-            LimeLog.info("CursorState: 键盘已开启，光标较低 (" + (lastRemoteCursorYPercent * 100) + "%)，抬起视图: " + targetY);
+            LimeLog.info("CursorState: 键盘已开启，光标较低 (" + (lastRemoteCursorYPercent * 100) + 
+                "%)，阈值=" + (threshold * 100) + "%，抬起视图: " + targetY);
         } else if (!shouldLift) {
+            isViewLifted = false;
             LimeLog.info("CursorState: 键盘关闭，恢复视图原位");
+        } else {
+            LimeLog.info("CursorState: 光标位置较高 (" + (lastRemoteCursorYPercent * 100) + 
+                "%)，阈值=" + (threshold * 100) + "%，不需要抬起");
         }
 
         // 执行动画
@@ -402,6 +417,16 @@ public class CursorServiceManager {
      * @param active 键盘是否开启
      */
     public void onLocalKeyboardToggle(boolean active) {
+        this.isLocalKeyboardActive = active;
+        uiCallback.runOnUi(() -> performViewAdjustment(active));
+    }
+
+    /**
+     * 当虚拟全键盘显示/隐藏时调用此方法
+     * @param active 虚拟键盘是否开启
+     */
+    public void onVirtualKeyboardToggle(boolean active) {
+        LimeLog.info("CursorState: 虚拟全键盘状态变化: " + active + ", 光标位置: " + (lastRemoteCursorYPercent * 100) + "%");
         this.isLocalKeyboardActive = active;
         uiCallback.runOnUi(() -> performViewAdjustment(active));
     }

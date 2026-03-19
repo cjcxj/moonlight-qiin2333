@@ -222,6 +222,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private boolean isHidingOverlays;
     private androidx.cardview.widget.CardView notificationOverlayView;
     private TextView notificationTextView;
+    
+    // 追踪系统键盘的上一次状态，避免重复触发
+    private boolean lastSystemKeyboardState = false;
     private int requestedNotificationOverlayVisibility = View.GONE;
 
     // 性能覆盖层管理器
@@ -262,6 +265,16 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         }
                     }
                 }, this);
+                
+                // 设置虚拟键盘可见性变化监听器，用于键盘防遮挡功能
+                standaloneKeyboardUI.setOnVisibilityChangeListener(new KeyboardUIController.OnKeyboardVisibilityChangeListener() {
+                    @Override
+                    public void onKeyboardVisibilityChanged(boolean isVisible) {
+                        if (cursorServiceManager != null) {
+                            cursorServiceManager.onVirtualKeyboardToggle(isVisible);
+                        }
+                    }
+                });
             }
         }
         return standaloneKeyboardUI;
@@ -777,6 +790,17 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         }
                     }
                 }, this);
+                
+                // 设置虚拟键盘可见性变化监听器，用于键盘防遮挡功能
+                kUI.setOnVisibilityChangeListener(new KeyboardUIController.OnKeyboardVisibilityChangeListener() {
+                    @Override
+                    public void onKeyboardVisibilityChanged(boolean isVisible) {
+                        if (cursorServiceManager != null) {
+                            cursorServiceManager.onVirtualKeyboardToggle(isVisible);
+                        }
+                    }
+                });
+                
                 controllerManager.setKeyboardUIController(kUI);
             }
             
@@ -2714,6 +2738,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private void setupKeyboardListener() {
         final View rootView = getWindow().getDecorView().findViewById(android.R.id.content);
         rootView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            // 如果虚拟键盘正在显示，不要让系统键盘监听器干扰
+            KeyboardUIController kUI = getOrCreateKeyboardUIController();
+            if (kUI != null && kUI.isVisible()) {
+                return; // 虚拟键盘优先，系统键盘监听器暂停
+            }
+            
             android.graphics.Rect r = new android.graphics.Rect();
             rootView.getWindowVisibleDisplayFrame(r);
             
@@ -2723,8 +2753,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             // 如果键盘高度超过屏幕高度的 15%，认为键盘已打开
             boolean isKeyboardVisible = keypadHeight > screenHeight * 0.15;
             
-            if (cursorServiceManager != null) {
-                cursorServiceManager.onLocalKeyboardToggle(isKeyboardVisible);
+            // 只有当键盘状态真正变化时才通知 CursorServiceManager
+            if (isKeyboardVisible != lastSystemKeyboardState) {
+                lastSystemKeyboardState = isKeyboardVisible;
+                if (cursorServiceManager != null) {
+                    cursorServiceManager.onLocalKeyboardToggle(isKeyboardVisible);
+                }
             }
         });
     }

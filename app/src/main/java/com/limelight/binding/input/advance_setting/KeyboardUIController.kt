@@ -24,6 +24,14 @@ class KeyboardUIController(
         fun sendKeyEvent(down: Boolean, keyCode: Short)
         fun rumbleSingleVibrator(lowFreq: Short, highFreq: Short, duration: Int)
     }
+    
+    // 键盘可见性变化监听器（可选）
+    interface OnKeyboardVisibilityChangeListener {
+        fun onKeyboardVisibilityChanged(isVisible: Boolean)
+    }
+    
+    private var visibilityChangeListener: OnKeyboardVisibilityChangeListener? = null
+    
     private val keyboardLayout: FrameLayout
     private val keyboardContent: View
     private val opacitySeekbar: SeekBar
@@ -201,7 +209,10 @@ class KeyboardUIController(
             override fun onClick(v: View) {
                 val id = v.getId()
                 if (id == R.id.btn_key_page_mini) {
+                    android.util.Log.i("KeyboardUI", "Switching to mini mode")
                     setMiniMode(true)
+                    // 切换到小键盘模式时，关闭防遮挡
+                    visibilityChangeListener?.onKeyboardVisibilityChanged(false)
                     return
                 }
 
@@ -214,6 +225,12 @@ class KeyboardUIController(
                 updateTabStyle(btnNav, id == R.id.btn_key_page_nav)
                 updateTabStyle(btnNum, id == R.id.btn_key_page_num)
                 updateTabStyle(btnMini, false)
+                
+                // 切换到全键盘的任何标签页时，启用防遮挡
+                if (isVisible) {
+                    android.util.Log.i("KeyboardUI", "Tab switched to full keyboard mode, triggering onKeyboardVisibilityChanged(true)")
+                    visibilityChangeListener?.onKeyboardVisibilityChanged(true)
+                }
             }
         }
         btnMain.setOnClickListener(tabListener)
@@ -261,7 +278,12 @@ class KeyboardUIController(
                 panelAlpha.setVisibility(View.VISIBLE)
             })
 
-        val backToFullListener = View.OnClickListener { v: View? -> setMiniMode(false) }
+        val backToFullListener = View.OnClickListener { v: View? -> 
+            android.util.Log.i("KeyboardUI", "Switching back to full keyboard mode")
+            setMiniMode(false)
+            // 切换到全键盘模式时，开启防遮挡
+            visibilityChangeListener?.onKeyboardVisibilityChanged(true)
+        }
         keyboardLayout.findViewById<View?>(R.id.btn_switch_full)
             .setOnClickListener(backToFullListener)
         keyboardLayout.findViewById<View?>(R.id.btn_switch_full_from_num)
@@ -599,15 +621,39 @@ class KeyboardUIController(
     fun show() {
         keyboardLayout.setVisibility(View.VISIBLE)
         parentContainer.setVisibility(View.VISIBLE)
+        // 只有在全键盘模式下才触发防遮挡
+        val isMini = isMiniMode()
+        android.util.Log.i("KeyboardUI", "show() called, isMiniMode=$isMini, layoutMini.visibility=${layoutMini?.visibility}")
+        android.util.Log.i("KeyboardUI", "show() stack trace:", Exception())
+        if (!isMini) {
+            visibilityChangeListener?.onKeyboardVisibilityChanged(true)
+        }
     }
 
     fun hide() {
         keyboardLayout.setVisibility(View.GONE)
         parentContainer.setVisibility(View.GONE)
+        android.util.Log.i("KeyboardUI", "hide() called")
+        android.util.Log.i("KeyboardUI", "hide() stack trace:", Exception())
+        visibilityChangeListener?.onKeyboardVisibilityChanged(false)
     }
 
     val isVisible: Boolean
         get() = keyboardLayout.getVisibility() == View.VISIBLE
+    
+    /**
+     * 判断当前是否是小键盘模式
+     */
+    private fun isMiniMode(): Boolean {
+        return layoutMini?.visibility == View.VISIBLE
+    }
+    
+    /**
+     * 设置键盘可见性变化监听器
+     */
+    fun setOnVisibilityChangeListener(listener: OnKeyboardVisibilityChangeListener?) {
+        this.visibilityChangeListener = listener
+    }
 
     companion object {
         private const val PREF_NAME = "keyboard_settings"
