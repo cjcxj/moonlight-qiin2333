@@ -740,6 +740,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         });
         streamView.post(() -> cursorServiceManager.syncCursorWithStream());
 
+        // 设置键盘状态监听器 (监听软键盘的弹出和关闭)
+        setupKeyboardListener();
+
         if (prefConfig.onscreenController) {
             // create virtual onscreen controller
             virtualController = new VirtualController(controllerHandler,
@@ -2700,6 +2703,30 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         InputMethodManager inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         inputManager.toggleSoftInput(0, 0);
+        
+        // 注意：toggleSoftInput 不会立即反映键盘状态，实际状态由 setupKeyboardListener 监听
+    }
+
+    /**
+     * 设置键盘状态监听器
+     * 通过监听根视图的布局变化来检测软键盘的弹出和关闭
+     */
+    private void setupKeyboardListener() {
+        final View rootView = getWindow().getDecorView().findViewById(android.R.id.content);
+        rootView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            android.graphics.Rect r = new android.graphics.Rect();
+            rootView.getWindowVisibleDisplayFrame(r);
+            
+            int screenHeight = rootView.getRootView().getHeight();
+            int keypadHeight = screenHeight - r.bottom;
+            
+            // 如果键盘高度超过屏幕高度的 15%，认为键盘已打开
+            boolean isKeyboardVisible = keypadHeight > screenHeight * 0.15;
+            
+            if (cursorServiceManager != null) {
+                cursorServiceManager.onLocalKeyboardToggle(isKeyboardVisible);
+            }
+        });
     }
 
     /**

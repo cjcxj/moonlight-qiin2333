@@ -64,6 +64,10 @@ public class CursorServiceManager {
     // 光标缓存 (最大缓存 100 张光标)
     private final LruCache<Integer, Bitmap> cursorCache = new LruCache<>(100);
 
+    // 文本光标状态记录 (数据感知与动作执行解耦)
+    private float lastRemoteCursorYPercent = -1.0f; // 记录最近的光标高度百分比
+    private boolean isLocalKeyboardActive = false; // 本地键盘/虚拟全键盘是否已打开
+
     public CursorServiceManager(StreamView streamView,
                                 CursorView cursorOverlay,
                                 PreferenceConfiguration prefConfig,
@@ -334,49 +338,74 @@ public class CursorServiceManager {
     // ========== 内部方法 ==========
 
     /**
-     * 核心逻辑：处理服务端发来的文本光标 Y 轴百分比状态，智能抬起画面防遮挡
+     * 核心逻辑：处理服务端发来的文本光标 Y 轴百分比状态（仅记录数据，不执行动作）
      * @param cmdValue -1表示退出输入状态；0~10000 表示所在的万分比高度
      */
     private void handleTextCursorState(int cmdValue) {
-        if (streamView == null || cursorOverlay == null) return;
-
         if (cmdValue == -1) {
-            // 收到 -1：退出输入状态，执行动画将视图恢复到原位 (Y轴偏移为0)
-            LimeLog.info("CursorState: 退出输入状态，恢复视图");
-            streamView.animate().translationY(0f).setDuration(250).start();
-            cursorOverlay.animate().translationY(0f).setDuration(250).start();
+            lastRemoteCursorYPercent = -1.0f;
+            // 如果输入法当前是开着的，可能需要实时恢复视图 (用户点了空白处)
+            if (isLocalKeyboardActive) {
+                uiCallback.runOnUi(() -> performViewAdjustment(false));
+            }
         } else {
-            // 将万分比转为 0.0 ~ 1.0 的百分比浮点数
-            float yPercent = cmdValue / 10000.0f;
-
-            // 智能预判：假设 Android 系统软键盘大致占据屏幕底部的 60% 空间。
-            // 因此，只有当光标处在屏幕顶部 40% 以下 (即 yPercent > 0.40f) 时，才可能被遮挡，需要抬起。
-            float safeAreaBottomPercent = 0.4f;
-
-            if (yPercent > safeAreaBottomPercent) {
-                // 计算当前 StreamView 的高度 (以此作为参考基准)
-                float currentHeight = streamView.getHeight();
-                if (currentHeight == 0) return;
-
-                // 算法：被遮挡的比例 = 实际光标百分比 - 键盘顶部的百分比。
-                // 加上 0.1f(10%) 是为了给输入框底部留出一点呼吸空间，不至于紧贴着键盘边缘。
-                float overlapPercent = yPercent - safeAreaBottomPercent + 0.1f;
-
-                // 目标向上移动的像素值 (向上平移 translationY 必须是负数)
-                float targetTranslationY = -(overlapPercent * currentHeight);
-
-                LimeLog.info("CursorState: 输入光标较低 (" + (yPercent * 100) + "%)，将视图抬起: " + targetTranslationY);
-
-                // 执行平滑动画
-                streamView.animate().translationY(targetTranslationY).setDuration(250).start();
-                cursorOverlay.animate().translationY(targetTranslationY).setDuration(250).start();
-            } else {
-                // 如果光标在屏幕上半部分的绝对安全区，则确保视图恢复原位
-                streamView.animate().translationY(0f).setDuration(250).start();
-                cursorOverlay.animate().translationY(0f).setDuration(250).start();
+            lastRemoteCursorYPercent = cmdValue / 10000.0f;
+            // 如果输入法已经是开启状态，实时调整高度 (用户在键盘开启时切换了输入框)
+            if (isLocalKeyboardActive) {
+                uiCallback.runOnUi(() -> performViewAdjustment(true));
             }
         }
     }
+
+    /**
+     * 执行视图调整动作
+     * @param shouldLift 是否根据光标位置尝试抬起
+     */
+    private void performViewAdjustment(boolean shouldLift) {
+        if (streamView == null || cursorOverlay == null) return;
+
+        // 检查是否启用了键盘防遮挡功能
+        if (!prefConfig.enableKeyboardViewLift) {
+            return;
+        }
+
+        // 只有在触摸板模式和本地光标开启时才执行防遮挡
+        if (!prefConfig.touchscreenTrackpad || !prefConfig.enableLocalCursorRendering) {
+            return;
+        }
+
+        float targetY = 0; // 默认恢复原位
+
+        // 将阈值从百分比转换为小数（例如 55 -> 0.55）
+        float threshold = prefConfig.keyboardHeightThreshold / 100.0f;
+
+        if (shouldLift && lastRemoteCursorYPercent > threshold) {
+            // 只有当键盘开启 且 光标确实靠下时，才计算抬起值
+            float currentHeight = streamView.getHeight();
+            if (currentHeight == 0) return;
+
+            float overlapPercent = lastRemoteCursorYPercent - threshold + 0.05f;
+            targetY = -(overlapPercent * currentHeight);
+
+            LimeLog.info("CursorState: 键盘已开启，光标较低 (" + (lastRemoteCursorYPercent * 100) + "%)，抬起视图: " + targetY);
+        } else if (!shouldLift) {
+            LimeLog.info("CursorState: 键盘关闭，恢复视图原位");
+        }
+
+        // 执行动画
+        streamView.animate().translationY(targetY).setDuration(200).start();
+        cursorOverlay.animate().translationY(targetY).setDuration(200).start();
+    }
+
+    /**
+     * 当客户端点击"呼出键盘"或输入法弹出/关闭时调用此方法
+     * @param active 键盘是否开启
+     */
+    public void onLocalKeyboardToggle(boolean active) {
+        this.isLocalKeyboardActive = active;
+        uiCallback.runOnUi(() -> performViewAdjustment(active));
+    }
+
     private void stopCurrentAnimation() {
         animationHandler.removeCallbacksAndMessages(null);
         currentAnimationTask = null;

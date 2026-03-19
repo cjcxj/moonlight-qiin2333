@@ -745,6 +745,12 @@
     <string name="title_local_cursor_rendering">显示一个本地光标</string>
     <string name="summary_local_cursor_rendering">显示一个本地光标，可通过触摸板模式控制光标</string>
 
+    <!-- 键盘防遮挡 -->
+    <string name="title_enable_keyboard_view_lift">启用键盘防遮挡</string>
+    <string name="summary_enable_keyboard_view_lift">当打开键盘时，如果光标位置较低，自动抬起画面避免被键盘遮挡(仅在触摸板模式下的本地光标模式下有效)</string>
+    <string name="title_keyboard_height_threshold">键盘高度阈值</string>
+    <string name="summary_keyboard_height_threshold">光标位置超过此百分比时触发画面抬起（默认55%，从顶部开始计算）</string>
+
     <!-- 特殊按键映射 -->
     <string name="title_special_key_map">特殊按键映射</string>
     <string name="summary_special_key_map">键盘Home键映射Esc键，Esc+数字键/符号映射F1到F12，Esc+Q键映射串流菜单，安卓截图键映射Windows截图，安卓上一首/播放暂停/下一首分别映射到F5/F10/F11。</string>

@@ -49,6 +49,8 @@ public class PreferenceConfiguration {
     private static final String ENABLE_DOUBLE_CLICK_DRAG_PREF_STRING = "pref_enable_double_click_drag";
     private static final String DOUBLE_TAP_TIME_THRESHOLD_PREF_STRING = "seekbar_double_tap_time_threshold";
     private static final String ENABLE_LOCAL_CURSOR_RENDERING_PREF_STRING = "pref_enable_local_cursor_rendering";
+    private static final String ENABLE_KEYBOARD_VIEW_LIFT_PREF_STRING = "pref_enable_keyboard_view_lift";
+    private static final String KEYBOARD_HEIGHT_THRESHOLD_PREF_STRING = "seekbar_keyboard_height_threshold";
 
     private static final String LEGACY_RES_FPS_PREF_STRING = "list_resolution_fps";
     private static final String LEGACY_ENABLE_51_SURROUND_PREF_STRING = "checkbox_51_surround";
@@ -268,7 +270,11 @@ public class PreferenceConfiguration {
     public int doubleTapTimeThreshold;
     
     private static final boolean DEFAULT_ENABLE_LOCAL_CURSOR_RENDERING = true;
+    private static final boolean DEFAULT_ENABLE_KEYBOARD_VIEW_LIFT = true;
+    private static final int DEFAULT_KEYBOARD_HEIGHT_THRESHOLD = 55; // 默认55%，即光标在屏幕下方45%时触发抬起
     public boolean enableLocalCursorRendering;
+    public boolean enableKeyboardViewLift;
+    public int keyboardHeightThreshold;
     //自定义按键映射
     public boolean enableCustomKeyMap;
     //修复鼠标中键识别
@@ -850,6 +856,8 @@ public class PreferenceConfiguration {
         config.enableDoubleClickDrag = prefs.getBoolean(ENABLE_DOUBLE_CLICK_DRAG_PREF_STRING, DEFAULT_ENABLE_DOUBLE_CLICK_DRAG);
         config.doubleTapTimeThreshold = prefs.getInt(DOUBLE_TAP_TIME_THRESHOLD_PREF_STRING, DEFAULT_DOUBLE_TAP_TIME_THRESHOLD);
         config.enableLocalCursorRendering = prefs.getBoolean(ENABLE_LOCAL_CURSOR_RENDERING_PREF_STRING, DEFAULT_ENABLE_LOCAL_CURSOR_RENDERING);
+        config.enableKeyboardViewLift = prefs.getBoolean(ENABLE_KEYBOARD_VIEW_LIFT_PREF_STRING, DEFAULT_ENABLE_KEYBOARD_VIEW_LIFT);
+        config.keyboardHeightThreshold = prefs.getInt(KEYBOARD_HEIGHT_THRESHOLD_PREF_STRING, DEFAULT_KEYBOARD_HEIGHT_THRESHOLD);
         config.enableCustomKeyMap=prefs.getBoolean("checkbox_special_key_map",false);
         config.fixMouseMiddle=prefs.getBoolean("checkbox_mouse_middle",false);
         config.fixMouseWheel=prefs.getBoolean("checkbox_mouse_wheel",false);
