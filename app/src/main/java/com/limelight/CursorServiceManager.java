@@ -8,6 +8,7 @@ import android.os.Looper;
 import android.util.LruCache;
 import android.view.Gravity;
 import android.view.PointerIcon;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
@@ -41,6 +42,8 @@ public class CursorServiceManager {
     }
 
     private static final int CURSOR_PORT = 5005;
+    // 特殊控制包 Hash 标识 (0xFFFFFFFF 在 Java 的有符号 int 中即为 -1)
+    private static final int MAGIC_CONTROL_HASH = -1;
 
     private final StreamView streamView;
     private final CursorView cursorOverlay;
@@ -204,6 +207,24 @@ public class CursorServiceManager {
                         int frameCount = wrapped.getInt();
                         int frameDelay = wrapped.getInt();
 
+                        // ========================================================
+                        // 拦截特殊控制指令包 (文本光标防遮挡逻辑)
+                        // ========================================================
+                        if (cursorHash == MAGIC_CONTROL_HASH) {
+                            int cmdId = hotX;       // 借用 HotX 字段作为 cmdId
+                            int cmdValue = hotY;    // 借用 HotY 字段作为 cmdValue
+
+                            if (cmdId == 2) {
+                                // 将具体的 UI 动画逻辑抛到主线程执行
+                                uiCallback.runOnUi(() -> handleTextCursorState(cmdValue));
+                            }
+                            // 控制包没有 PNG 数据，直接结束本次循环
+                            continue;
+                        }
+
+                        // ========================================================
+                        // 正常的图像解析逻辑
+                        // ========================================================
                         int headerSize = 20;
                         int pngSize = packetLen - headerSize;
 
@@ -312,6 +333,50 @@ public class CursorServiceManager {
 
     // ========== 内部方法 ==========
 
+    /**
+     * 核心逻辑：处理服务端发来的文本光标 Y 轴百分比状态，智能抬起画面防遮挡
+     * @param cmdValue -1表示退出输入状态；0~10000 表示所在的万分比高度
+     */
+    private void handleTextCursorState(int cmdValue) {
+        if (streamView == null || cursorOverlay == null) return;
+
+        if (cmdValue == -1) {
+            // 收到 -1：退出输入状态，执行动画将视图恢复到原位 (Y轴偏移为0)
+            LimeLog.info("CursorState: 退出输入状态，恢复视图");
+            streamView.animate().translationY(0f).setDuration(250).start();
+            cursorOverlay.animate().translationY(0f).setDuration(250).start();
+        } else {
+            // 将万分比转为 0.0 ~ 1.0 的百分比浮点数
+            float yPercent = cmdValue / 10000.0f;
+
+            // 智能预判：假设 Android 系统软键盘大致占据屏幕底部的 60% 空间。
+            // 因此，只有当光标处在屏幕顶部 40% 以下 (即 yPercent > 0.40f) 时，才可能被遮挡，需要抬起。
+            float safeAreaBottomPercent = 0.4f;
+
+            if (yPercent > safeAreaBottomPercent) {
+                // 计算当前 StreamView 的高度 (以此作为参考基准)
+                float currentHeight = streamView.getHeight();
+                if (currentHeight == 0) return;
+
+                // 算法：被遮挡的比例 = 实际光标百分比 - 键盘顶部的百分比。
+                // 加上 0.1f(10%) 是为了给输入框底部留出一点呼吸空间，不至于紧贴着键盘边缘。
+                float overlapPercent = yPercent - safeAreaBottomPercent + 0.1f;
+
+                // 目标向上移动的像素值 (向上平移 translationY 必须是负数)
+                float targetTranslationY = -(overlapPercent * currentHeight);
+
+                LimeLog.info("CursorState: 输入光标较低 (" + (yPercent * 100) + "%)，将视图抬起: " + targetTranslationY);
+
+                // 执行平滑动画
+                streamView.animate().translationY(targetTranslationY).setDuration(250).start();
+                cursorOverlay.animate().translationY(targetTranslationY).setDuration(250).start();
+            } else {
+                // 如果光标在屏幕上半部分的绝对安全区，则确保视图恢复原位
+                streamView.animate().translationY(0f).setDuration(250).start();
+                cursorOverlay.animate().translationY(0f).setDuration(250).start();
+            }
+        }
+    }
     private void stopCurrentAnimation() {
         animationHandler.removeCallbacksAndMessages(null);
         currentAnimationTask = null;
