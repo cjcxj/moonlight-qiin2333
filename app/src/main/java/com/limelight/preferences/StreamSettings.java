@@ -1655,9 +1655,9 @@ public class StreamSettings extends AppCompatActivity {
             });
 
             // 测试崩溃（仅用于调试）
-            findPreference("test_crash").setOnPreferenceClickListener(preference -> {
-                throw new RuntimeException("Test crash for debugging crash log functionality");
-            });
+//            findPreference("test_crash").setOnPreferenceClickListener(preference -> {
+//                throw new RuntimeException("Test crash for debugging crash log functionality");
+//            });
 
             // 编解码与屏幕能力检测
             findPreference("capability_diagnostic").setOnPreferenceClickListener(preference -> {
