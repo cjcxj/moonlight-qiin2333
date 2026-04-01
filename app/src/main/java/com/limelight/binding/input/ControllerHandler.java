@@ -55,8 +55,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.ArrayList;
-import java.util.List;
 
 public class ControllerHandler implements InputManager.InputDeviceListener, UsbDriverListener {
 
@@ -153,6 +151,44 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
         return (short)(Math.abs(v) <= PHYS_EPSILON ? 0 : v);
     }
 
+    // Gyro-to-mouse accumulator (sub-pixel remainder)
+    private volatile float gyroMouseRemainX = 0f;
+    private volatile float gyroMouseRemainY = 0f;
+    private volatile long gyroMouseLastTimestamp = 0;
+
+    private void applyGyroToMouse(float wx, float wy, long timestamp) {
+        if (gyroMouseLastTimestamp == 0) {
+            gyroMouseLastTimestamp = timestamp;
+            return;
+        }
+        float dt = (timestamp - gyroMouseLastTimestamp) * 1e-9f;
+        gyroMouseLastTimestamp = timestamp;
+        // Clamp dt to avoid huge jumps after sensor pauses (e.g. app backgrounded)
+        if (dt > 0.05f) dt = 0.05f;
+
+        // sensitivity: pixels per radian. gyroSensitivityMultiplier scales it.
+        float sensitivity = 800f * prefConfig.gyroSensitivityMultiplier;
+
+        float deltaX = wx * dt * sensitivity;
+        float deltaY = wy * dt * sensitivity;
+
+        if (prefConfig.gyroInvertXAxis) deltaX = -deltaX;
+        if (prefConfig.gyroInvertYAxis) deltaY = -deltaY;
+
+        // Accumulate sub-pixel remainder to avoid truncation at slow speeds
+        gyroMouseRemainX += deltaX;
+        gyroMouseRemainY += deltaY;
+
+        short sendX = (short) gyroMouseRemainX;
+        short sendY = (short) gyroMouseRemainY;
+        if (sendX != 0) gyroMouseRemainX -= sendX;
+        if (sendY != 0) gyroMouseRemainY -= sendY;
+
+        if (sendX != 0 || sendY != 0) {
+            conn.sendMouseMove(sendX, sendY);
+        }
+    }
+
     private void applyGyroToRightStick(short controllerNumber, float gyroXDegPerSec, float gyroYDegPerSec) {
         // 计算陀螺仪映射到摇杆的值
         float effectiveSensitivity = 180.0f / prefConfig.gyroSensitivityMultiplier;
@@ -221,8 +257,12 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
 
     public void setGyroToRightStickEnabled(boolean enabled) {
         prefConfig.gyroToRightStick = enabled;
-        
         if (enabled) {
+            // 互斥：关闭鼠标模式
+            prefConfig.gyroToMouse = false;
+            gyroMouseRemainX = 0f;
+            gyroMouseRemainY = 0f;
+            gyroMouseLastTimestamp = 0;
             // 确保控制器0有可用的sensorManager
             InputDeviceContext defaultContext = inputDeviceContexts.get(0);
             if (defaultContext != null && defaultContext.sensorManager == null) {
@@ -264,9 +304,113 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
     
     // 在系统重新启用传感器时，检查并恢复陀螺仪功能
     public void onSensorsReenabled() {
-        if (prefConfig.gyroToRightStick) {
-            LimeLog.info("Sensors re-enabled, restoring gyro to right stick functionality");
+        if (prefConfig.gyroToMouse) {
+            LimeLog.info("Sensors re-enabled, restoring gyro-to-mouse");
+            registerDeviceGyroForDefaultContext(true);
+        } else if (prefConfig.gyroToRightStick) {
+            LimeLog.info("Sensors re-enabled, restoring gyro-to-right-stick");
             handleSetMotionEventState((short) 0, MoonBridge.LI_MOTION_TYPE_GYRO, (short) 120);
+        }
+    }
+
+    /**
+     * 直接在 defaultContext 上注册/注销手机内置陀螺仪。
+     * handleSetMotionEventState 只遍历 inputDeviceContexts，defaultContext 不在其中，
+     * 所以需要这个专用方法。
+     *
+     * 注意：如果已有物理手柄（controllerNumber=0 的 InputDeviceContext 存在），
+     * 则不注册，避免与手柄自身的传感器路径冲突产生双重输入。
+     */
+    private void registerDeviceGyroForDefaultContext(boolean enable) {
+        if (enable) {
+            // 如果已有物理手柄占据 controllerNumber=0，不在 defaultContext 上额外注册
+            // 手柄的传感器由 handleSetMotionEventState 通过 inputDeviceContexts 管理
+            for (int i = 0; i < inputDeviceContexts.size(); i++) {
+                if (inputDeviceContexts.valueAt(i).controllerNumber == 0) {
+                    LimeLog.info("Physical controller present, skipping defaultContext gyro registration");
+                    return;
+                }
+            }
+            // 同样检查 USB 手柄
+            for (int i = 0; i < usbDeviceContexts.size(); i++) {
+                if (usbDeviceContexts.valueAt(i).controllerNumber == 0) {
+                    LimeLog.info("USB controller present, skipping defaultContext gyro registration");
+                    return;
+                }
+            }
+            if (defaultContext.sensorManager == null) {
+                if (deviceSensorManager == null) {
+                    LimeLog.warning("deviceSensorManager is null, cannot register gyro on defaultContext");
+                    return;
+                }
+                defaultContext.sensorManager = deviceSensorManager;
+            }
+            Sensor gyroSensor = defaultContext.sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+            if (gyroSensor != null) {
+                if (defaultContext.gyroListener != null) {
+                    defaultContext.sensorManager.unregisterListener(defaultContext.gyroListener);
+                    defaultContext.gyroListener = null;
+                }
+                defaultContext.gyroReportRateHz = 120;
+                defaultContext.gyroListener = createSensorListener(
+                        defaultContext.controllerNumber,
+                        MoonBridge.LI_MOTION_TYPE_GYRO,
+                        true /* needsDeviceOrientationCorrection */);
+                defaultContext.sensorManager.registerListener(
+                        defaultContext.gyroListener, gyroSensor, 1000000 / 120);
+                LimeLog.info("Gyro registered on defaultContext");
+            } else {
+                LimeLog.warning("No gyroscope sensor available on this device");
+            }
+        } else {
+            if (defaultContext.gyroListener != null && defaultContext.sensorManager != null) {
+                defaultContext.sensorManager.unregisterListener(defaultContext.gyroListener);
+                defaultContext.gyroListener = null;
+                defaultContext.gyroReportRateHz = 0;
+                // 清除我们设置的 sensorManager，避免泄漏给右摇杆模式
+                defaultContext.sensorManager = null;
+                LimeLog.info("Gyro unregistered from defaultContext");
+            }
+        }
+    }
+
+    // Callback to notify VirtualController to pause/resume its own gyro listener
+    // to avoid double-registration on the same sensor when mouse mode is active.
+    private Runnable virtualControllerGyroSuspendCallback;
+    private Runnable virtualControllerGyroResumeCallback;
+
+    public void setVirtualControllerGyroCallbacks(Runnable suspend, Runnable resume) {
+        virtualControllerGyroSuspendCallback = suspend;
+        virtualControllerGyroResumeCallback = resume;
+    }
+
+    public void setGyroToMouseEnabled(boolean enabled) {
+        prefConfig.gyroToMouse = enabled;
+        if (enabled) {
+            // 互斥：关闭右摇杆模式
+            prefConfig.gyroToRightStick = false;
+            // 重置累加器
+            gyroMouseRemainX = 0f;
+            gyroMouseRemainY = 0f;
+            gyroMouseLastTimestamp = 0;
+            // 暂停 VirtualController 自己的传感器监听，避免与 defaultContext 双重注册
+            if (virtualControllerGyroSuspendCallback != null) {
+                virtualControllerGyroSuspendCallback.run();
+            }
+            // 直接在 defaultContext 上注册手机陀螺仪（含屏幕旋转修正）
+            registerDeviceGyroForDefaultContext(true);
+            // 重新计算所有 context 的 hold 状态（含 ALWAYS 情况）
+            recomputeGyroHoldForAllContexts();
+        } else {
+            gyroMouseRemainX = 0f;
+            gyroMouseRemainY = 0f;
+            gyroMouseLastTimestamp = 0;
+            registerDeviceGyroForDefaultContext(false);
+            clearAllGyroStates();
+            // 恢复 VirtualController 自己的传感器监听
+            if (virtualControllerGyroResumeCallback != null) {
+                virtualControllerGyroResumeCallback.run();
+            }
         }
     }
 
@@ -289,33 +433,62 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
         defaultContext.gyroHoldActive = false;
     }
 
+    /**
+     * 检查是否有任何物理手柄或虚拟手柄连接
+     * @return 如果有手柄连接返回true，否则返回false
+     */
+    public boolean hasAnyController() {
+        // 检查是否有物理手柄（InputDevice）
+        if (inputDeviceContexts.size() > 0) {
+            return true;
+        }
+        // 检查是否有USB手柄
+        if (usbDeviceContexts.size() > 0) {
+            return true;
+        }
+        // 检查虚拟手柄是否启用
+        // 虚拟手柄通常使用 defaultContext (controllerNumber=0)
+        // 如果王冠功能启用，说明虚拟手柄可用
+        if (prefConfig != null && prefConfig.onscreenController) {
+            return true;
+        }
+        return false;
+    }
+
     private void recomputeGyroHoldForAllContexts() {
+        final boolean alwaysOn = prefConfig.gyroActivationKeyCode == GYRO_ACTIVATION_ALWAYS;
         final boolean useL2 = prefConfig.gyroActivationKeyCode == KeyEvent.KEYCODE_BUTTON_L2;
         final boolean useR2 = prefConfig.gyroActivationKeyCode == KeyEvent.KEYCODE_BUTTON_R2;
 
         for (int i = 0; i < usbDeviceContexts.size(); i++) {
             UsbDeviceContext c = usbDeviceContexts.valueAt(i);
-            boolean active = false;
-            if (useL2) {
-                active = (c.leftTrigger & 0xFF) / 255.0f >= TRIGGER_ACTIVATE_THRESHOLD;
+            if (alwaysOn) {
+                c.gyroHoldActive = true;
+            } else if (useL2) {
+                c.gyroHoldActive = (c.leftTrigger & 0xFF) / 255.0f >= TRIGGER_ACTIVATE_THRESHOLD;
             } else if (useR2) {
-                active = (c.rightTrigger & 0xFF) / 255.0f >= TRIGGER_ACTIVATE_THRESHOLD;
+                c.gyroHoldActive = (c.rightTrigger & 0xFF) / 255.0f >= TRIGGER_ACTIVATE_THRESHOLD;
+            } else {
+                c.gyroHoldActive = false;
             }
-            c.gyroHoldActive = active;
         }
 
         for (int i = 0; i < inputDeviceContexts.size(); i++) {
             InputDeviceContext c = inputDeviceContexts.valueAt(i);
-            boolean active = false;
-            if (useL2) {
-                active = (c.leftTrigger & 0xFF) / 255.0f >= TRIGGER_ACTIVATE_THRESHOLD;
+            if (alwaysOn) {
+                c.gyroHoldActive = true;
+            } else if (useL2) {
+                c.gyroHoldActive = (c.leftTrigger & 0xFF) / 255.0f >= TRIGGER_ACTIVATE_THRESHOLD;
             } else if (useR2) {
-                active = (c.rightTrigger & 0xFF) / 255.0f >= TRIGGER_ACTIVATE_THRESHOLD;
+                c.gyroHoldActive = (c.rightTrigger & 0xFF) / 255.0f >= TRIGGER_ACTIVATE_THRESHOLD;
+            } else {
+                c.gyroHoldActive = false;
             }
-            c.gyroHoldActive = active;
         }
 
-        if (useL2) {
+        if (alwaysOn) {
+            defaultContext.gyroHoldActive = true;
+        } else if (useL2) {
             defaultContext.gyroHoldActive = (defaultContext.leftTrigger & 0xFF) / 255.0f >= TRIGGER_ACTIVATE_THRESHOLD;
         } else if (useR2) {
             defaultContext.gyroHoldActive = (defaultContext.rightTrigger & 0xFF) / 255.0f >= TRIGGER_ACTIVATE_THRESHOLD;
@@ -341,10 +514,23 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
      * 这个方法允许虚拟控制器报告陀螺仪数据到ControllerHandler
      */
     public void reportVirtualControllerGyro(float gx, float gy, float gz) {
+        if (prefConfig.gyroToMouse) {
+            if (defaultContext.gyroHoldActive) {
+                // 虚拟控制器陀螺仪→鼠标：gx=pitch(X轴), gz=yaw(Z轴)，横屏下 gz→mouseX, gx→mouseY
+                // 这里传入的已经是 deg/s，转回 rad/s 再交给 applyGyroToMouse
+                applyGyroToMouse(gz / 57.2957795f, gx / 57.2957795f, System.nanoTime());
+            }
+            return;
+        }
+
         if (!prefConfig.gyroToRightStick) {
             return;
         }
-        
+
+        if (!defaultContext.gyroHoldActive) {
+            return;
+        }
+
         // 使用控制器0（虚拟控制器的默认控制器编号）
         applyGyroToRightStick((short) 0, gx, gy);
         
@@ -362,7 +548,7 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
     }
 
     private void updateGyroHoldFromDigital(InputDeviceContext context, int keyCode, boolean isDown) {
-        if (!prefConfig.gyroToRightStick) {
+        if (!prefConfig.gyroToRightStick && !prefConfig.gyroToMouse) {
             context.gyroHoldActive = false;
             return;
         }
@@ -380,7 +566,7 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
     }
 
     private void updateGyroHoldFromDigital(GenericControllerContext context, int keyCode, boolean isDown) {
-        if (!prefConfig.gyroToRightStick) {
+        if (!prefConfig.gyroToRightStick && !prefConfig.gyroToMouse) {
             context.gyroHoldActive = false;
             return;
         }
@@ -400,6 +586,8 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
     private void onGyroHoldDeactivated(GenericControllerContext context) {
         context.gyroRightStickX = 0;
         context.gyroRightStickY = 0;
+        // In mouse mode there's no right-stick data to flush; skip the controller packet
+        if (prefConfig.gyroToMouse) return;
         // 恢复为纯物理值并立即发送
         context.rightStickX = context.physRightStickX;
         context.rightStickY = context.physRightStickY;
@@ -409,6 +597,8 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
     private void onGyroHoldDeactivated(InputDeviceContext context) {
         context.gyroRightStickX = 0;
         context.gyroRightStickY = 0;
+        // In mouse mode there's no right-stick data to flush; skip the controller packet
+        if (prefConfig.gyroToMouse) return;
         // 立即发送仅物理摇杆的状态，确保停止模拟
         sendControllerInputPacket(context);
     }
@@ -536,6 +726,11 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
             releaseControllerNumber(context);
             context.destroy();
             inputDeviceContexts.remove(deviceId);
+
+            // 如果陀螺仪鼠标模式开着，手柄断开后重新在 defaultContext 上注册手机传感器
+            if (prefConfig.gyroToMouse) {
+                registerDeviceGyroForDefaultContext(true);
+            }
         }
     }
 
@@ -582,6 +777,10 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
             UsbDeviceContext deviceContext = usbDeviceContexts.valueAt(i);
             deviceContext.destroy();
         }
+
+        // 清理 defaultContext 上可能注册的手机陀螺仪传感器
+        registerDeviceGyroForDefaultContext(false);
+        defaultContext.destroy();
 
         deviceVibrator.cancel();
     }
@@ -1341,6 +1540,16 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
         context = createInputDeviceContextForDevice(event.getDevice());
         inputDeviceContexts.put(event.getDeviceId(), context);
 
+        // 如果陀螺仪鼠标模式开着，且新手柄会占用 controllerNumber=0，
+        // 需要清理 defaultContext 上的手机传感器，避免双重输入。
+        // Only unregister if this device is likely to become controller 0.
+        // Internal devices and the first external controller will get controllerNumber=0.
+        boolean likelyController0 = !context.external || (prefConfig.multiController && currentControllers == 0);
+        if (prefConfig.gyroToMouse && defaultContext.gyroListener != null && likelyController0) {
+            registerDeviceGyroForDefaultContext(false);
+            LimeLog.info("Physical controller connected, released defaultContext gyro");
+        }
+
         return context;
     }
 
@@ -1940,9 +2149,11 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
 
         // Handle gyro hold activation edge detection for analog triggers
         boolean wasHold = context.gyroHoldActive;
-        context.gyroHoldActive = prefConfig.gyroToRightStick && computeAnalogActivation(lt, rt);
-        if (wasHold && !context.gyroHoldActive) {
-            onGyroHoldDeactivated(context);
+        if (prefConfig.gyroToRightStick || prefConfig.gyroToMouse) {
+            context.gyroHoldActive = computeAnalogActivation(lt, rt);
+            if (wasHold && !context.gyroHoldActive) {
+                onGyroHoldDeactivated(context);
+            }
         }
 
         // Apply gyro fusion to right stick if needed
@@ -2534,7 +2745,16 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
                     float gy = sensorEvent.values[y] * yFactor * 57.2957795f;
                     float gz = sensorEvent.values[z] * zFactor * 57.2957795f;
 
-                    if (prefConfig.gyroToRightStick) {
+                    if (prefConfig.gyroToMouse && isGyroHoldActiveFor(controllerNumber)) {
+                        // 使用已经过屏幕旋转修正的轴值（rad/s）
+                        // 横屏下：gz(yaw) → mouseX，gx(pitch) → mouseY
+                        float mouseX = sensorEvent.values[z] * zFactor;
+                        float mouseY = sensorEvent.values[x] * xFactor;
+                        applyGyroToMouse(mouseX, mouseY, sensorEvent.timestamp);
+                        return;
+                    }
+
+                    if (prefConfig.gyroToRightStick && isGyroHoldActiveFor(controllerNumber)) {
                         // Map device/controller gyro to right stick
                         applyGyroToRightStick(controllerNumber, gz, gx);
                         return;
@@ -3140,13 +3360,13 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
 
         // 更新陀螺仪激活状态
         boolean wasHold = defaultContext.gyroHoldActive;
-        // 将byte类型的触发键值转换为float (0.0-1.0范围)
         float leftTriggerFloat = (leftTrigger & 0xFF) / 255.0f;
         float rightTriggerFloat = (rightTrigger & 0xFF) / 255.0f;
-        defaultContext.gyroHoldActive = prefConfig.gyroToRightStick && computeAnalogActivation(leftTriggerFloat, rightTriggerFloat);
-        
+        if (prefConfig.gyroToRightStick || prefConfig.gyroToMouse) {
+            defaultContext.gyroHoldActive = computeAnalogActivation(leftTriggerFloat, rightTriggerFloat);
+        }
+
         if (wasHold && !defaultContext.gyroHoldActive) {
-            // 确保我们立即停止任何残留的陀螺仪影响
             onGyroHoldDeactivated(defaultContext);
         }
 
@@ -3274,10 +3494,19 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
             return;
         }
 
-        // 当启用"陀螺仪模拟右摇杆"时，将手柄IMU的陀螺仪数据映射为右摇杆输入
-        if (motionType == MoonBridge.LI_MOTION_TYPE_GYRO && prefConfig.gyroToRightStick) {
-            applyGyroToRightStick(context.controllerNumber, x, y);
-            return;
+        // 当启用"陀螺仪模拟右摇杆"或"陀螺仪模拟鼠标"时，拦截陀螺仪数据
+        if (motionType == MoonBridge.LI_MOTION_TYPE_GYRO) {
+            if (prefConfig.gyroToMouse && context.gyroHoldActive) {
+                // x=pitch(deg/s), y=roll, z=yaw → 横屏下 z→mouseX, x→mouseY，转回 rad/s
+                applyGyroToMouse(z / 57.2957795f, x / 57.2957795f, System.nanoTime());
+                return;
+            }
+            if (prefConfig.gyroToRightStick && context.gyroHoldActive) {
+                // x=pitch, y=roll, z=yaw — pass yaw as X and pitch as Y to match
+                // the same axis convention used in the device sensor listener (gz, gx)
+                applyGyroToRightStick(context.controllerNumber, z, x);
+                return;
+            }
         }
 
         // 否则照常上报IMU数据到主机
