@@ -813,6 +813,12 @@
     <string name="title_local_cursor_rendering">Show local cursor</string>
     <string name="summary_local_cursor_rendering">Display a local cursor that can be controlled via touchpad mode</string>
 
+    <!-- Keyboard view lift -->
+    <string name="title_enable_keyboard_view_lift">Enable keyboard anti-occlusion</string>
+    <string name="summary_enable_keyboard_view_lift">Automatically lift the view when keyboard opens if cursor is at the bottom</string>
+    <string name="title_keyboard_height_threshold">Keyboard height threshold</string>
+    <string name="summary_keyboard_height_threshold">Trigger view lift when cursor position exceeds this percentage (default 55%)</string>
+
     <!-- Special key mapping -->
     <string name="title_special_key_map">Special key mapping</string>
     <string name="summary_special_key_map">Maps Home to Esc, Esc+number/symbol to F1-F12, Esc+Q to stream menu, Android screenshot to Windows screenshot, Android prev/play-pause/next to F5/F10/F11.</string>

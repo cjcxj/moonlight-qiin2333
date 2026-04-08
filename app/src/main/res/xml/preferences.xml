@@ -374,6 +374,18 @@
             android:summary="@string/summary_local_cursor_rendering"
             android:defaultValue="false" />
         <CheckBoxPreference
+            android:key="pref_enable_keyboard_view_lift"
+            android:title="@string/title_enable_keyboard_view_lift"
+            android:summary="@string/summary_enable_keyboard_view_lift"
+            android:defaultValue="false" />
+        <com.limelight.preferences.SeekBarPreference
+            android:key="seekbar_keyboard_height_threshold"
+            android:defaultValue="55"
+            android:max="100"
+            android:text="%"
+            android:title="@string/title_keyboard_height_threshold"
+            android:summary="@string/summary_keyboard_height_threshold" />
+        <CheckBoxPreference
             android:key="checkbox_special_key_map"
             android:title="@string/title_special_key_map"
             android:summary="@string/summary_special_key_map"
