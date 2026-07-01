@@ -44,12 +44,41 @@ class RelativeTouchContext(
 
     private val handler: Handler = Handler(Looper.getMainLooper())
 
+    // 仅鼠标移动
+    // 动态读取 Game 中的“仅鼠标移动”状态
+    private val isMouseMoveOnlyEnabled: Boolean
+        get() {
+            var context = targetView.context
+            while (context is android.content.ContextWrapper) {
+                if (context is Game) {
+                    return context.isMouseMoveOnlyEnabled
+                }
+                context = context.baseContext
+            }
+            return (context as? Game)?.isMouseMoveOnlyEnabled == true
+        }
+
+    // 网络发送代理方法
+    private val forwardedButtonsDown = HashSet<Byte>()
+
+    private fun sendMouseButtonDownProxy(button: Byte) {
+        if (isMouseMoveOnlyEnabled) return
+        forwardedButtonsDown += button
+        conn.sendMouseButtonDown(button)
+    }
+
+    private fun sendMouseButtonUpProxy(button: Byte) {
+        if (!forwardedButtonsDown.remove(button)) return
+        conn.sendMouseButtonUp(button)
+    }
+
+    // 使用代理方法替换原有的 conn 发送
     private val buttonUpRunnables: Array<Runnable> = arrayOf(
-        Runnable { conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT) },
-        Runnable { conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_MIDDLE) },
-        Runnable { conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_RIGHT) },
-        Runnable { conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_X1) },
-        Runnable { conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_X2) }
+        Runnable { sendMouseButtonUpProxy(MouseButtonPacket.BUTTON_LEFT) },
+        Runnable { sendMouseButtonUpProxy(MouseButtonPacket.BUTTON_MIDDLE) },
+        Runnable { sendMouseButtonUpProxy(MouseButtonPacket.BUTTON_RIGHT) },
+        Runnable { sendMouseButtonUpProxy(MouseButtonPacket.BUTTON_X1) },
+        Runnable { sendMouseButtonUpProxy(MouseButtonPacket.BUTTON_X2) }
     )
 
     // 用于延迟发送单击事件的Runnable
@@ -75,7 +104,7 @@ class RelativeTouchContext(
 
         // We haven't been cancelled before the timer expired so begin dragging
         confirmedDrag = true
-        conn.sendMouseButtonDown(getMouseButtonIndex())
+        sendMouseButtonDownProxy(getMouseButtonIndex()) 
     }
 
     // 定义2次点击的间隔小于多久才为双击按住
@@ -169,6 +198,11 @@ class RelativeTouchContext(
 
             isPotentialDoubleClick = false // 重置双击待定状态
 
+            if (isMouseMoveOnlyEnabled) {
+                confirmedMove = true
+                return true
+            }
+
             if (prefConfig.enableDoubleClickDrag) {
                 val timeSinceLastTap = eventTime - lastTapUpTime
                 val xDelta = Math.abs(eventX - lastTapUpX)
@@ -211,11 +245,11 @@ class RelativeTouchContext(
 
             // 立即发送一次完整的点击 (模拟第一次点击)
             val buttonIndex = MouseButtonPacket.BUTTON_LEFT
-            conn.sendMouseButtonDown(buttonIndex)
-            conn.sendMouseButtonUp(buttonIndex)
+            sendMouseButtonDownProxy(buttonIndex) 
+            sendMouseButtonUpProxy(buttonIndex)   
 
             // 紧接着发送第二次点击
-            conn.sendMouseButtonDown(buttonIndex)
+            sendMouseButtonDownProxy(buttonIndex) 
             val buttonUpRunnable = buttonUpRunnables[buttonIndex - 1]
             handler.removeCallbacks(buttonUpRunnable)
             handler.postDelayed(buttonUpRunnable, 100)
@@ -226,7 +260,7 @@ class RelativeTouchContext(
         }
 
         if (isDoubleClickDrag) {
-            conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT)
+            sendMouseButtonUpProxy(MouseButtonPacket.BUTTON_LEFT) 
             isDoubleClickDrag = false
             lastTapUpTime = 0
             return
@@ -237,7 +271,7 @@ class RelativeTouchContext(
         val buttonIndex = getMouseButtonIndex()
 
         if (confirmedDrag) {
-            conn.sendMouseButtonUp(buttonIndex)
+            sendMouseButtonUpProxy(buttonIndex) 
             // 拖动结束后重置点击时间，避免影响后续的双指右键
             lastTapUpTime = 0
         } else if (isTap(eventTime)) {
@@ -250,7 +284,7 @@ class RelativeTouchContext(
 
                 // 创建一个"单击"任务，并延迟执行
                 singleTapRunnable = Runnable {
-                    conn.sendMouseButtonDown(buttonIndex)
+                    sendMouseButtonDownProxy(buttonIndex) 
                     val buttonUpRunnable = buttonUpRunnables[buttonIndex - 1]
                     handler.postDelayed(buttonUpRunnable, 100)
                     singleTapRunnable = null // 执行后清空
@@ -260,7 +294,7 @@ class RelativeTouchContext(
                 // 如果功能关闭，或者不是左键单击（如右键），则立即发送，不延迟
                 lastTapUpTime = 0 // 清除非左键单击的记录
 
-                conn.sendMouseButtonDown(buttonIndex)
+                sendMouseButtonDownProxy(buttonIndex) 
 
                 // Release the mouse button in 100ms to allow for apps that use polling
                 // to detect mouse button presses.
@@ -291,7 +325,7 @@ class RelativeTouchContext(
                 isDoubleClickDrag = true
                 confirmedMove = true // 标记为已移动，避免后续逻辑冲突
 
-                conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_LEFT)
+                sendMouseButtonDownProxy(MouseButtonPacket.BUTTON_LEFT) 
             }
         }
 
@@ -368,12 +402,12 @@ class RelativeTouchContext(
         cancelDoubleTapHoldTimer()
 
         if (isDoubleClickDrag) {
-            conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT)
+            sendMouseButtonUpProxy(MouseButtonPacket.BUTTON_LEFT) 
             isDoubleClickDrag = false
         }
 
         if (confirmedDrag) {
-            conn.sendMouseButtonUp(getMouseButtonIndex())
+            sendMouseButtonUpProxy(getMouseButtonIndex()) 
         }
 
         confirmedMove = false
@@ -392,7 +426,7 @@ class RelativeTouchContext(
                 isPotentialDoubleClick = false
                 isDoubleClickDrag = true
                 confirmedMove = true
-                conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_LEFT)
+                sendMouseButtonDownProxy(MouseButtonPacket.BUTTON_LEFT) 
             }
         }
         handler.postDelayed(doubleTapHoldRunnable!!, DOUBLE_TAP_HOLD_TO_DRAG_THRESHOLD.toLong())
