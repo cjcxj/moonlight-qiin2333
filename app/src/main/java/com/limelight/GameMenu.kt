@@ -357,15 +357,6 @@ class GameMenu(
                 ) {
                     setCrownFeatureEnabled(true)
                     replaceCrownFunctionMenu()
-                },
-                createCrownOption(
-                    getString(R.string.game_menu_configure_settings),
-                    "crown_profiles",
-                    getString(R.string.crown_control_profiles_subtitle)
-                ) {
-                    setCrownFeatureEnabled(true)
-                    game.setcurrentBackKeyMenu(Game.BackKeyMenuMode.NO_MENU)
-                    game.controllerManager?.pageConfigController?.open()
                 }
             )
             showSubMenu(getString(R.string.game_menu_crown_function_title), disabledOptions)
@@ -444,8 +435,7 @@ class GameMenu(
                 getString(R.string.crown_control_profiles_subtitle)
             ) {
                 controllerManager?.let { cm ->
-                    game.toggleBackKeyMenuType()
-                    game.setcurrentBackKeyMenu(Game.BackKeyMenuMode.NO_MENU)
+                    game.setcurrentBackKeyMenu(Game.BackKeyMenuMode.NO_MENU_LOCKED)
                     cm.pageConfigController?.open()
                 }
             },
@@ -456,8 +446,14 @@ class GameMenu(
             ) {
                 controllerManager?.let { cm ->
                     game.toggleBackKeyMenuType()
+                    game.setcurrentBackKeyMenu(Game.BackKeyMenuMode.NO_MENU)
                     cm.elementController?.changeMode(ElementController.Mode.Edit)
                     cm.elementController?.open()
+                    cm.superPagesController?.let { spc ->
+                        if (spc.pageNow === spc.pageNull) {
+                            spc.returnOperation()
+                        }
+                    }
                 }
             },
             createCrownOption(
