@@ -106,6 +106,7 @@ class PreferenceConfiguration {
     var enhanceTouchZoneDivider = 0 //Assigned to NativeTouchContext.ENHANCED_TOUCH_ZONE_DIVIDER
     var pointerVelocityFactor = 0f //Assigned to NativeTouchContext.POINTER_VELOCITY_FACTOR
     var nativeTouchFingersToToggleKeyboard = 0 // Number of fingers to tap to toggle local on-screen keyboard in native touch mode.
+    var enableThreeFingerPanZoom = true // 三指平移/缩放（游戏菜单开关持久化，默认开）
 
     var videoFormat: FormatOption = FormatOption.AUTO
     var deadzonePercentage = 0
@@ -165,6 +166,8 @@ class PreferenceConfiguration {
     var touchscreenTrackpad = false
     /** Use the device touchscreen as the touchpad of a virtual DualSense controller. */
     var screenDs5Touchpad = false
+    /** Ask the host to auto-invoke its touch keyboard when a text field gains focus (Sunshine extension). */
+    var touchKeyboardAutoInvoke = true
     var audioConfiguration: MoonBridge.AudioConfiguration = MoonBridge.AUDIO_CONFIGURATION_STEREO
     /** Negotiated audio codec preference — see [MoonBridge.AUDIO_CODEC_OPUS] etc. */
     var audioCodec: Int = MoonBridge.AUDIO_CODEC_OPUS
@@ -340,7 +343,15 @@ class PreferenceConfiguration {
                 .putBoolean(ENABLE_START_KEY_MENU_PREF_STRING, enableStartKeyMenu)
                 .putBoolean(CONTROL_ONLY_PREF_STRING, controlOnly)
                 .putBoolean(ENABLE_ENHANCED_TOUCH_PREF_STRING, enableEnhancedTouch)
+                .putInt(LONG_PRESS_FLAT_REGION_PIXELS_PREF_STRING, longPressflatRegionPixels)
+                .putBoolean(ENHANCED_TOUCH_ON_RIGHT_PREF_STRING, enhancedTouchOnWhichSide)
+                .putInt(ENHANCED_TOUCH_ZONE_DIVIDER_PREF_STRING, enhanceTouchZoneDivider)
+                .putInt(
+                    POINTER_VELOCITY_FACTOR_PREF_STRING,
+                    pointerVelocityFactor.roundToInt()
+                )
                 .putBoolean(TOUCHSCREEN_TRACKPAD_PREF_STRING, touchscreenTrackpad)
+                .putBoolean(TOUCH_KEYBOARD_AUTO_INVOKE_PREF_STRING, touchKeyboardAutoInvoke)
                 .putBoolean(ENABLE_NATIVE_MOUSE_POINTER_PREF_STRING, enableNativeMousePointer)
                 .putBoolean(SCREEN_DS5_TOUCHPAD_PREF_STRING, screenDs5Touchpad)
                 .putBoolean(FORCE_MTK_MAX_OPERATING_RATE_PREF_STRING, forceMtkMaxOperatingRate)
@@ -355,6 +366,25 @@ class PreferenceConfiguration {
             if (synchronous) {
                 editor.commit()
             } else {
+                editor.apply()
+                true
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    /** Persist only the split direct-touch fields owned by sensitivity presets. */
+    fun writeTouchPointerPreferences(context: Context, synchronous: Boolean = false): Boolean {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context) ?: return false
+        return try {
+            val editor = prefs.edit()
+                .putInt(LONG_PRESS_FLAT_REGION_PIXELS_PREF_STRING, longPressflatRegionPixels)
+                .putBoolean(ENHANCED_TOUCH_ON_RIGHT_PREF_STRING, enhancedTouchOnWhichSide)
+                .putInt(ENHANCED_TOUCH_ZONE_DIVIDER_PREF_STRING, enhanceTouchZoneDivider)
+                .putInt(POINTER_VELOCITY_FACTOR_PREF_STRING, pointerVelocityFactor.roundToInt())
+            if (synchronous) editor.commit() else {
                 editor.apply()
                 true
             }
@@ -634,6 +664,7 @@ class PreferenceConfiguration {
         // ---- Public pref key constants ----
         const val RESOLUTION_PREF_STRING = "list_resolution"
         const val TOUCHSCREEN_TRACKPAD_PREF_STRING = "checkbox_touchscreen_trackpad"
+        const val TOUCH_KEYBOARD_AUTO_INVOKE_PREF_STRING = "checkbox_touch_keyboard_auto_invoke"
         const val SCREEN_DS5_TOUCHPAD_PREF_STRING = "checkbox_screen_ds5_touchpad"
         const val ENABLE_NATIVE_MOUSE_POINTER_PREF_STRING = "checkbox_enable_native_mouse_pointer"
         const val NATIVE_MOUSE_MODE_PRESET_PREF_STRING = "list_native_mouse_mode_preset"
@@ -647,6 +678,7 @@ class PreferenceConfiguration {
         const val SYNC_TOUCH_EVENT_WITH_DISPLAY_PREF_STRING = "checkbox_sync_touch_event_with_display"
         const val ENABLE_KEYBOARD_TOGGLE_IN_NATIVE_TOUCH = "checkbox_enable_keyboard_toggle_in_native_touch"
         const val NATIVE_TOUCH_FINGERS_TO_TOGGLE_KEYBOARD_PREF_STRING = "seekbar_keyboard_toggle_fingers_native_touch"
+        const val THREE_FINGER_PAN_ZOOM_PREF_STRING = "checkbox_three_finger_pan_zoom"
         const val AUDIO_CONFIG_PREF_STRING = "list_audio_config"
         /** Audio codec preference: "auto" | "opus" | "ac3" | "eac3" */
         const val AUDIO_CODEC_PREF_STRING = "list_audio_codec"
@@ -1257,6 +1289,9 @@ class PreferenceConfiguration {
                 config.nativeTouchFingersToToggleKeyboard = -1 // completely disable keyboard toggle in multi-point touch
             }
 
+            // 三指平移/缩放（游戏菜单"三指平移/缩放"开关，持久化）
+            config.enableThreeFingerPanZoom = prefs.getBoolean(THREE_FINGER_PAN_ZOOM_PREF_STRING, true)
+
             // Enhance touch settings
             config.enhancedTouchOnWhichSide = prefs.getBoolean(ENHANCED_TOUCH_ON_RIGHT_PREF_STRING, true) // by default, enhanced touch zone is on the right side.
             config.enhanceTouchZoneDivider = prefs.getInt(ENHANCED_TOUCH_ZONE_DIVIDER_PREF_STRING, 50) // decides where to divide native touch zone & enhance touch zone
@@ -1413,6 +1448,7 @@ class PreferenceConfiguration {
             config.touchscreenTrackpad = touchModeState.touchscreenTrackpad
             config.enableNativeMousePointer = touchModeState.nativeMousePointer
             config.screenDs5Touchpad = touchModeState.screenDs5Touchpad
+            config.touchKeyboardAutoInvoke = prefs.getBoolean(TOUCH_KEYBOARD_AUTO_INVOKE_PREF_STRING, true)
             config.enableLatencyToast = prefs.getBoolean(LATENCY_TOAST_PREF_STRING, DEFAULT_LATENCY_TOAST)
             config.enableStun = prefs.getBoolean(ENABLE_STUN_PREF_STRING, DEFAULT_ENABLE_STUN)
 

@@ -29,6 +29,7 @@ internal data class GameMenuComposeUiState(
     val bitrate: BitrateCardState,
     val audioHaptics: AudioHapticsCardState,
     val gyro: GyroCardState,
+    val touchPointerSensitivity: TouchPointerSensitivityState,
     val customKeys: List<CustomKeyData>,
     val quickEditMode: Boolean = false,
     val isSubmenu: Boolean = false,
@@ -56,6 +57,17 @@ internal fun gameMenuChildDialogOption(
     iconKey = null,
     isShowIcon = false,
     isKeepDialog = true
+)
+
+internal fun threeFingerPanZoomOption(label: String, checked: Boolean, toggle: Runnable) = GameMenu.MenuOption(
+    label = label,
+    isWithGameFocus = false,
+    runnable = toggle,
+    iconKey = "game_menu_enable_three_finger_pan_zoom",
+    isShowIcon = true,
+    isKeepDialog = true,
+    inlineControl = GameMenu.InlineControl.Toggle(checked, toggle),
+    presentation = GameMenuOptionPresentation.COMPATIBLE_ACTION
 )
 
 internal class GameMenuGuideDismissController {
@@ -117,5 +129,10 @@ internal data class GameMenuCallbacks(
     val onGyroSensitivityFinished: () -> Unit,
     val onGyroInvertX: (Boolean) -> Unit,
     val onGyroInvertY: (Boolean) -> Unit,
+    val onTouchPointerSensitivity: (Float) -> Boolean,
+    val onTouchPointerSensitivityFinished: () -> Unit,
+    val onSaveTouchPointerSensitivityPreset: () -> Unit,
+    val onApplyTouchPointerSensitivityPreset: (String) -> Unit,
+    val onManageTouchPointerSensitivityPresets: () -> Unit,
     val onCustomKey: (CustomKeyData) -> Unit
 )
